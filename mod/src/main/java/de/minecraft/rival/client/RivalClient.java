@@ -243,10 +243,10 @@ public final class RivalClient {
     }
 
     private static void installBranding(Minecraft client) {
+        client.getWindow().setTitle("Minecraft Rival by pluginsmc.com");
         if (iconInstalled) return;
         try (RivalIconPack icons = new RivalIconPack()) {
             client.getWindow().setIcon(icons, IconSet.RELEASE);
-            client.getWindow().setTitle("Minecraft Rival by pluginsmc.com");
             iconInstalled = true;
         } catch (IOException | RuntimeException ignored) {
             // macOS und einzelne Window-Manager verwalten das Programmsymbol selbst.
@@ -279,6 +279,7 @@ public final class RivalClient {
     private static void renderHud(GuiGraphics graphics) {
         Minecraft client = Minecraft.getInstance();
         if (!authorized || client.player == null || client.options.hideGui) return;
+        renderLowHealthVignette(graphics, client.player.getHealth() + client.player.getAbsorptionAmount());
         int center = graphics.guiWidth() / 2;
         int heartCount = Math.max(0, Math.min(3, hearts));
         int textureWidth = HEART_WIDTHS[heartCount];
@@ -315,6 +316,31 @@ public final class RivalClient {
             graphics.drawString(client.font, combat, center - client.font.width(combat) / 2, combatY, 0xFFFF5555, true);
         }
         if (customDebug) renderProjectDebug(graphics, client);
+    }
+
+    private static void renderLowHealthVignette(GuiGraphics graphics, float effectiveHealth) {
+        if (effectiveHealth >= 7.0f) return;
+        float danger = 1.0f - Math.max(0.0f, effectiveHealth) / 7.0f;
+        int maximumAlpha = Math.round(45.0f + 100.0f * danger);
+        int width = graphics.guiWidth();
+        int height = graphics.guiHeight();
+        int edge = Math.max(34, Math.min(width, height) / 5);
+        int red = 0x00C01824;
+        int strong = maximumAlpha << 24 | red;
+
+        graphics.fillGradient(0, 0, width, edge, strong, red);
+        graphics.fillGradient(0, height - edge, width, height, red, strong);
+
+        int steps = 14;
+        for (int step = 0; step < steps; step++) {
+            float remaining = 1.0f - step / (float) steps;
+            int alpha = Math.round(maximumAlpha * remaining * remaining);
+            int color = alpha << 24 | red;
+            int from = Math.round(step * edge / (float) steps);
+            int to = Math.max(from + 1, Math.round((step + 1) * edge / (float) steps));
+            graphics.fill(from, 0, to, height, color);
+            graphics.fill(width - to, 0, width - from, height, color);
+        }
     }
 
     private static void renderProjectDebug(GuiGraphics graphics, Minecraft client) {
