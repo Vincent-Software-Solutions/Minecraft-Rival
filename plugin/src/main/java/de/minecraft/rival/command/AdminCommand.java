@@ -446,7 +446,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private void help(CommandSender sender) {
         Messages.normal(sender, "Admin-Modus • /admin mode • GUI: /admin • vanish • reload");
-        Messages.normal(sender, "Projekt • project <start|stop|schedule> • setlocation waiting • spawn <negative|positive> <add|clear>");
+        Messages.normal(sender, "Projektwelt rival_main • project <start|stop|schedule> • setlocation waiting • spawn <negative|positive> <add|clear>");
         Messages.normal(sender, "Inseln • zone <nether|end> <pos1|pos2|clear|info> • mobrate <nether|end|overworld> <0-100>");
         Messages.normal(sender, "Spiel • border <on|off|toggle> • endfight <status|start|stop> • erzfeind");
         Messages.normal(sender, "Spieler • player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]");

@@ -126,8 +126,9 @@ public final class ProjectManager implements Listener {
         for (int side : needed) {
             long onlineOnSide = Bukkit.getOnlinePlayers().stream().filter(player -> !plugin.adminMode().isActive(player))
                 .filter(player -> data.player(player.getUniqueId(), player.getName()).side() == side).count();
-            if (spawns(side).size() < onlineOnSide) {
-                logStartFailure("Seite " + side + " benötigt " + onlineOnSide + " unterschiedliche Spawnpunkte, hat aber nur " + spawns(side).size() + ".");
+            int distinctSpawns = distinctSpawnCount(spawns(side));
+            if (distinctSpawns < onlineOnSide) {
+                logStartFailure("Seite " + side + " benötigt " + onlineOnSide + " unterschiedliche Spawnpunkte, hat aber nur " + distinctSpawns + ".");
                 return false;
             }
         }
@@ -172,10 +173,15 @@ public final class ProjectManager implements Listener {
         if (!isStarted()) Bukkit.getOnlinePlayers().forEach(this::placePlayer);
     }
 
-    public Location waitingRoom() { return plugin.getConfig().getLocation("project.waiting-room"); }
+    public Location waitingRoom() {
+        Location location = plugin.getConfig().getLocation("project.waiting-room");
+        return location != null && plugin.isMainWorld(location.getWorld()) ? location : null;
+    }
 
     public void addSpawn(int side, Location location) {
         requireMainWorld(location);
+        if (spawns(side).stream().anyMatch(existing -> sameBlock(existing, location)))
+            throw new IllegalArgumentException("An diesem Block existiert bereits ein Spawnpunkt für diese Seite.");
         String path = spawnPath(side);
         List<Object> values = new ArrayList<>(Optional.ofNullable(plugin.getConfig().getList(path)).orElse(List.of()));
         values.add(location);
@@ -190,7 +196,8 @@ public final class ProjectManager implements Listener {
 
     public List<Location> spawns(int side) {
         List<?> values = Optional.ofNullable(plugin.getConfig().getList(spawnPath(side))).orElse(List.of());
-        return values.stream().filter(Location.class::isInstance).map(Location.class::cast).filter(location -> location.getWorld() != null).toList();
+        return values.stream().filter(Location.class::isInstance).map(Location.class::cast)
+            .filter(location -> plugin.isMainWorld(location.getWorld())).toList();
     }
 
     public void playerAssigned(Player player) {
@@ -274,9 +281,15 @@ public final class ProjectManager implements Listener {
     }
 
     private String spawnPath(int side) { return side < 0 ? "project.spawns.negative" : "project.spawns.positive"; }
+    private static int distinctSpawnCount(List<Location> locations) {
+        return (int) locations.stream().map(location -> location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ()).distinct().count();
+    }
+    private static boolean sameBlock(Location first, Location second) {
+        return first.getBlockX() == second.getBlockX() && first.getBlockY() == second.getBlockY() && first.getBlockZ() == second.getBlockZ();
+    }
     private void requireMainWorld(Location location) {
-        if (location.getWorld() == null || !location.getWorld().getName().equals(plugin.getConfig().getString("border.world", "world")))
-            throw new IllegalArgumentException("Position muss in der konfigurierten Hauptwelt liegen.");
+        if (!plugin.isMainWorld(location.getWorld()))
+            throw new IllegalArgumentException("Position muss in der Projektwelt rival_main liegen.");
     }
     private static boolean sameWorld(Location a, Location b) { return a.getWorld() != null && a.getWorld().equals(b.getWorld()); }
 }

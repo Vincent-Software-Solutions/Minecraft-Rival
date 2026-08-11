@@ -25,16 +25,17 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 
 ## Installation
 
-1. Plugin-JAR in den `plugins/`-Ordner des Paper-/Mohist-Servers kopieren.
-2. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen.
-3. NeoForge 47.1.106 für Minecraft 1.20.1 installieren und die obfuskierte Mod-JAR in den Client-Ordner `mods/` kopieren. Eine zusätzliche Fabric API wird nicht benötigt.
-4. Für eine vollständig dimensionslose Karte zusätzlich `misc.enable-nether: false` in `config/paper-global.yml` und `settings.allow-end: false` in `bukkit.yml` setzen. Das Plugin blockiert unabhängig davon Portale, Gateways und jeden Wechsel aus `border.world`; bereits geladene Nebenwelten werden entladen.
-5. Mit `/admin mode` den Admin-Modus aktivieren.
-6. Im Warteraum `/admin setlocation waiting` ausführen.
-7. Auf der Nether-Insel `/admin zone nether pos1` und an der gegenüberliegenden Ecke `/admin zone nether pos2` ausführen. Dasselbe mit `end`. Die Y-Höhe ist dabei egal: Beide Zonen gelten vertikal unbegrenzt.
-8. Für jede Seite genügend unterschiedliche Startpunkte mit `/admin spawn negative add` beziehungsweise `/admin spawn positive add` setzen.
-9. Spieler mit `/admin player side <Spieler> <-1|1>` zuweisen. Mit Wert `0` wird eine Zuweisung wieder entfernt.
-10. Optional `/admin project schedule 2026-08-11T20:00:00` setzen oder mit `/admin project start` manuell starten.
+1. Den Server stoppen und den einzigen Kartenordner exakt `rival_main` nennen.
+2. In `server.properties` `level-name=rival_main` und `allow-nether=false` setzen; in `bukkit.yml` zusätzlich `settings.allow-end: false` setzen.
+3. Plugin-JAR in den `plugins/`-Ordner des Paper-/Mohist-Servers kopieren. Das Plugin aktiviert sich absichtlich nicht, wenn `rival_main` nicht die primäre Overworld ist.
+4. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen. Alte gespeicherte Weltverweise werden automatisch auf `rival_main` migriert.
+5. NeoForge 47.1.106 für Minecraft 1.20.1 installieren und die obfuskierte Mod-JAR in den Client-Ordner `mods/` kopieren. Eine zusätzliche Fabric API wird nicht benötigt.
+6. Mit `/admin mode` den Admin-Modus aktivieren.
+7. Im Warteraum `/admin setlocation waiting` ausführen.
+8. Auf der Nether-Insel `/admin zone nether pos1` und an der gegenüberliegenden Ecke `/admin zone nether pos2` ausführen. Dasselbe mit `end`. Die Y-Höhe ist dabei egal: Beide Zonen gelten vertikal unbegrenzt.
+9. Für jede Seite genügend unterschiedliche Startpunkte mit `/admin spawn negative add` beziehungsweise `/admin spawn positive add` setzen.
+10. Spieler mit `/admin player side <Spieler> <-1|1>` zuweisen. Mit Wert `0` wird eine Zuweisung wieder entfernt.
+11. Optional `/admin project schedule 2026-08-11T20:00:00` setzen oder mit `/admin project start` manuell starten.
 
 > **Wichtig:** Für die Spiellogik wird serverseitig nur `RivalPlugins-1.0.jar` benötigt. Auf Mohist darf die aktuelle `RivalMod-1.0.jar` zusätzlich im Serverordner `mods/` bleiben; ihr Dist-Schutz verhindert dort das Laden von Minecraft-Clientklassen. Auf jedem Spieler-Client muss die Mod weiterhin installiert sein.
 
@@ -83,7 +84,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 
 ### Inselzonen, Mobs und Dimensionen
 
-- Es existiert gameplayseitig nur die Hauptwelt. Nether- und Endportal, End-Gateway und Dimensionswechsel werden blockiert; Enderdrachen können nicht spawnen und bereits vorhandene werden entfernt.
+- Es existiert gameplayseitig und serverseitig nur die feste Hauptwelt `rival_main`. Andere Weltziele, Portale, Gateways und Dimensionswechsel werden blockiert; zusätzlich geladene Welten werden nach dem Rücktransport aller Spieler entladen.
 - Nether- und End-Insel sind zwei rechteckige X/Z-Zonen auf derselben Karte. Zwei Adminpunkte legen die Fläche fest; die Zone gilt über **alle Y-Höhen**.
 - Jeder Mob erhält beim Spawn seine Ursprungszone und Hauptkartenseite. Mobbewegung, Teleports und von Mobs abgeschossene Projektile dürfen weder eine Inselzonengrenze noch die zentrale Seitentrennung passieren.
 - Außerhalb der beiden Spezialzonen gilt automatisch `overworld`. Welche normalen Mobs erscheinen können, bestimmt weiterhin das jeweilige Biom.
@@ -178,7 +179,7 @@ Beispiele:
 - `rules.yml`: nummerierte Projektregeln
 - `moderation.yml`: temporäre/permanente Banns und Verwarnungen
 - `broadcast-queue.yml`: noch nicht gesendete Admin-Broadcasts
-- `admin-snapshots.yml`: ausfallsichere Inventar-/Statussicherung während Vanish
+- `admin-snapshots.yml`: ausfallsichere Inventar-/Cursor-/Statussicherung während Vanish
 - `endfight-state.yml`: Wiederherstellungszustand der normalen Worldborder
 
 Vor Updates sollten `data.yml` und `graves.yml` gesichert werden. Änderungen an gespeicherten Daten sollten nur bei gestopptem Server erfolgen. Die automatische Tagesgrenze verwendet `general.timezone`, standardmäßig `Europe/Vienna`.

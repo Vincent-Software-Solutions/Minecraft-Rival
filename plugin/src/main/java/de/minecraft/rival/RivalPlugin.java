@@ -12,7 +12,9 @@ import de.minecraft.rival.placeholder.RivalExpansion;
 import de.minecraft.rival.security.ModGate;
 import de.minecraft.rival.util.Messages;
 import de.minecraft.rival.util.ConfigSanitizer;
+import de.minecraft.rival.util.RivalWorld;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,12 +38,21 @@ public final class RivalPlugin extends JavaPlugin {
     private ProjectManager projects;
     private ZoneManager zones;
     private MenuListener menus;
+    private World mainWorld;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        mainWorld = RivalWorld.loadExisting(this);
+        if (mainWorld == null) {
+            getLogger().severe("Minecraft Rival wird deaktiviert, damit niemals auf einer falschen Welt gespielt wird.");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
+        RivalWorld.rewriteLegacyConfigWorld(this);
         ConfigSanitizer.sanitize(this);
         Messages.load(getConfig());
+        RivalWorld.migrateConfiguredLocations(this, mainWorld);
         data = new DataStore(this);
         data.load();
 
@@ -120,7 +131,7 @@ public final class RivalPlugin extends JavaPlugin {
     }
 
     public void reloadRival() {
-        reloadConfig();
+        RivalWorld.rewriteLegacyConfigWorld(this);
         ConfigSanitizer.sanitize(this);
         Messages.load(getConfig());
         zones.retagAllMobs();
@@ -144,4 +155,6 @@ public final class RivalPlugin extends JavaPlugin {
     public ProjectManager projects() { return projects; }
     public ZoneManager zones() { return zones; }
     public MenuListener menus() { return menus; }
+    public World mainWorld() { return mainWorld; }
+    public boolean isMainWorld(World world) { return world != null && world.equals(mainWorld); }
 }

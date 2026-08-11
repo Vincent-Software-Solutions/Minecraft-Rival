@@ -25,6 +25,11 @@ public final class ConfigSanitizer {
             plugin.getLogger().warning("Ungültige border.axis wurde auf X zurückgesetzt.");
             changed = true;
         }
+        if (!RivalWorld.NAME.equals(config.getString("border.world"))) {
+            config.set("border.world", RivalWorld.NAME);
+            plugin.getLogger().warning("border.world wurde verbindlich auf " + RivalWorld.NAME + " gesetzt.");
+            changed = true;
+        }
         changed |= clamp(config, "security.handshake-timeout-seconds", 2, 60);
         changed |= clamp(config, "combat.duration-seconds", 1, 86_400);
         changed |= clamp(config, "combat.maximum-hearts", 1, 3);

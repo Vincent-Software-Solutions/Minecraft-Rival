@@ -11,10 +11,12 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.PortalCreateEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 
@@ -48,9 +50,10 @@ public final class ZoneManager implements Listener {
         for (World world : Bukkit.getWorlds()) for (LivingEntity entity : world.getLivingEntities()) {
             if (entity instanceof Player) continue;
             if (!isMainWorld(world) || forbidden(entity)) entity.remove();
-            else if (!(entity instanceof Player)) tag(entity, zoneAt(entity.getLocation()));
+            else if (entity instanceof Mob) tag(entity, zoneAt(entity.getLocation()));
         }
         Bukkit.getScheduler().runTask(plugin, this::unloadForbiddenWorlds);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::unloadForbiddenWorlds, 100L, 100L);
         Bukkit.getScheduler().runTaskTimer(plugin, this::containMobsAndProjectiles, 1L, 1L);
     }
 
@@ -79,9 +82,9 @@ public final class ZoneManager implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTeleport(EntityTeleportEvent event) {
-        if (!(event.getEntity() instanceof LivingEntity living) || living instanceof Player || event.getTo() == null) return;
-        if (!isMainWorld(event.getTo().getWorld()) || zoneAt(event.getTo()) != origin(living)
-            || sideAt(event.getTo()) != originSide(living)) event.setCancelled(true);
+        if (!(event.getEntity() instanceof Mob mob) || event.getTo() == null) return;
+        if (!isMainWorld(event.getTo().getWorld()) || zoneAt(event.getTo()) != origin(mob)
+            || sideAt(event.getTo()) != originSide(mob)) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -142,6 +145,16 @@ public final class ZoneManager implements Listener {
         });
     }
 
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> enforcePlayerWorld(event.getPlayer()), 1L);
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        if (!isMainWorld(event.getWorld())) Bukkit.getScheduler().runTask(plugin, this::unloadForbiddenWorlds);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onRespawn(PlayerRespawnEvent event) {
         if (isMainWorld(event.getRespawnLocation().getWorld())) return;
@@ -157,10 +170,8 @@ public final class ZoneManager implements Listener {
 
     public void setCorner(Zone zone, int corner, Location location) {
         if (zone == Zone.OVERWORLD) throw new IllegalArgumentException("Overworld ist automatisch alles außerhalb der Spezialzonen.");
-        if (location.getWorld() == null || location.getWorld().getEnvironment() != World.Environment.NORMAL)
-            throw new IllegalArgumentException("Inselzonen müssen in der Hauptwelt liegen.");
-        if (!location.getWorld().getName().equals(plugin.getConfig().getString("border.world", "world")))
-            throw new IllegalArgumentException("Inselzonen müssen in border.world liegen.");
+        if (!plugin.isMainWorld(location.getWorld()))
+            throw new IllegalArgumentException("Inselzonen müssen in rival_main liegen.");
         plugin.getConfig().set("zones." + key(zone) + ".pos" + corner, location);
         plugin.saveConfig();
         retagAllMobs();
@@ -178,9 +189,7 @@ public final class ZoneManager implements Listener {
         if (zone == Zone.OVERWORLD) return true;
         Location a = plugin.getConfig().getLocation("zones." + key(zone) + ".pos1");
         Location b = plugin.getConfig().getLocation("zones." + key(zone) + ".pos2");
-        return a != null && b != null && a.getWorld() != null && a.getWorld().equals(b.getWorld())
-            && a.getWorld().getEnvironment() == World.Environment.NORMAL
-            && a.getWorld().getName().equals(plugin.getConfig().getString("border.world", "world"));
+        return a != null && b != null && plugin.isMainWorld(a.getWorld()) && a.getWorld().equals(b.getWorld());
     }
 
     public boolean specialZonesOverlap() {
@@ -242,9 +251,11 @@ public final class ZoneManager implements Listener {
     }
 
     private void containMobsAndProjectiles() {
+        for (Player player : Bukkit.getOnlinePlayers()) enforcePlayerWorld(player);
         Set<UUID> activeMobs = new HashSet<>();
         for (World world : Bukkit.getWorlds()) for (LivingEntity entity : world.getLivingEntities()) {
             if (entity instanceof Player || entity.isDead()) continue;
+            if (!(entity instanceof Mob) && !forbidden(entity)) continue;
             UUID id = entity.getUniqueId();
             activeMobs.add(id);
             if (!isMainWorld(world) || forbidden(entity)) {
@@ -293,13 +304,12 @@ public final class ZoneManager implements Listener {
         for (World world : Bukkit.getWorlds()) for (LivingEntity entity : world.getLivingEntities()) {
             if (entity instanceof Player) continue;
             if (!isMainWorld(world) || forbidden(entity)) entity.remove();
-            else tag(entity, zoneAt(entity.getLocation()));
+            else if (entity instanceof Mob) tag(entity, zoneAt(entity.getLocation()));
         }
     }
 
     private boolean isMainWorld(World world) {
-        return world != null && world.getEnvironment() == World.Environment.NORMAL
-            && world.getName().equals(plugin.getConfig().getString("border.world", "world"));
+        return plugin.isMainWorld(world);
     }
 
     private Location safeTarget(Player player) {
@@ -310,16 +320,22 @@ public final class ZoneManager implements Listener {
             if (!spawns.isEmpty()) target = spawns.get(0);
         }
         if (target != null && isMainWorld(target.getWorld())) return target;
-        World world = Bukkit.getWorld(plugin.getConfig().getString("border.world", "world"));
-        return isMainWorld(world) ? world.getSpawnLocation() : null;
+        return plugin.mainWorld().getSpawnLocation();
+    }
+
+    private void enforcePlayerWorld(Player player) {
+        if (!player.isOnline() || isMainWorld(player.getWorld())) return;
+        Location target = safeTarget(player);
+        if (target == null || !player.teleport(target, PlayerTeleportEvent.TeleportCause.PLUGIN)) {
+            player.kickPlayer("Nur die Projektwelt rival_main ist zugelassen.");
+        }
     }
 
     private void unloadForbiddenWorlds() {
         for (World world : new java.util.ArrayList<>(Bukkit.getWorlds())) {
             if (isMainWorld(world)) continue;
             for (Player player : new java.util.ArrayList<>(world.getPlayers())) {
-                Location target = safeTarget(player);
-                if (target != null) player.teleport(target);
+                enforcePlayerWorld(player);
             }
             if (world.getPlayers().isEmpty() && Bukkit.unloadWorld(world, false)) {
                 plugin.getLogger().info("Nicht zugelassene Welt entladen: " + world.getName());

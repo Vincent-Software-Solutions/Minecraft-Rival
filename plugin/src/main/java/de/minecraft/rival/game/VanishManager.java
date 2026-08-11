@@ -39,7 +39,9 @@ public final class VanishManager implements Listener {
 
     private void enter(Player player) {
         plugin.youtube().disableSilently(player);
-        Snapshot snapshot = new Snapshot(clone(player.getInventory().getContents()), player.getGameMode(), player.getLevel(), player.getExp(),
+        ItemStack cursor = player.getItemOnCursor();
+        Snapshot snapshot = new Snapshot(clone(player.getInventory().getContents()), cursor.getType().isAir() ? null : cursor.clone(),
+            player.getGameMode(), player.getLevel(), player.getExp(),
             player.getTotalExperience(), player.getHealth(), player.getFoodLevel(), player.getSaturation(), player.getAllowFlight(),
             player.isFlying(), player.isInvulnerable(), player.isCollidable());
         snapshots.put(player.getUniqueId(), snapshot);
@@ -48,6 +50,7 @@ public final class VanishManager implements Listener {
             Messages.error(player, "Vanish konnte nicht sicher aktiviert werden: Statusdatei nicht speicherbar.");
             return;
         }
+        player.setItemOnCursor(null);
         player.getInventory().clear();
         player.setGameMode(GameMode.CREATIVE);
         player.setInvulnerable(true);
@@ -74,6 +77,7 @@ public final class VanishManager implements Listener {
 
     private static void apply(Player player, Snapshot snapshot) {
         player.getInventory().setContents(snapshot.inventory);
+        player.setItemOnCursor(snapshot.cursor == null ? null : snapshot.cursor.clone());
         player.setGameMode(snapshot.gameMode);
         player.setLevel(snapshot.level);
         player.setExp(snapshot.exp);
@@ -125,14 +129,15 @@ public final class VanishManager implements Listener {
         for (String key : root.getKeys(false)) try {
             UUID uuid = UUID.fromString(key);
             String path = "snapshots." + key + ".";
-            int size = Math.max(0, Math.min(100, yaml.getInt(path + "inventory-size", 41)));
+            int size = Math.max(0, Math.min(41, yaml.getInt(path + "inventory-size", 41)));
             ItemStack[] inventory = new ItemStack[size];
             ConfigurationSection items = yaml.getConfigurationSection(path + "inventory");
             if (items != null) for (String slot : items.getKeys(false)) {
                 int index = Integer.parseInt(slot);
                 if (index >= 0 && index < size) inventory[index] = items.getItemStack(slot);
             }
-            snapshots.put(uuid, new Snapshot(inventory, GameMode.valueOf(yaml.getString(path + "game-mode", "SURVIVAL")),
+            snapshots.put(uuid, new Snapshot(inventory, yaml.getItemStack(path + "cursor"),
+                GameMode.valueOf(yaml.getString(path + "game-mode", "SURVIVAL")),
                 yaml.getInt(path + "level"), (float) yaml.getDouble(path + "exp"), yaml.getInt(path + "total-experience"),
                 yaml.getDouble(path + "health", 20), yaml.getInt(path + "food", 20), (float) yaml.getDouble(path + "saturation", 5),
                 yaml.getBoolean(path + "allow-flight"), yaml.getBoolean(path + "flying"), yaml.getBoolean(path + "invulnerable"),
@@ -149,6 +154,7 @@ public final class VanishManager implements Listener {
             yaml.set(path + "inventory-size", snapshot.inventory.length);
             for (int i = 0; i < snapshot.inventory.length; i++) if (snapshot.inventory[i] != null)
                 yaml.set(path + "inventory." + i, snapshot.inventory[i]);
+            yaml.set(path + "cursor", snapshot.cursor);
             yaml.set(path + "game-mode", snapshot.gameMode.name()); yaml.set(path + "level", snapshot.level);
             yaml.set(path + "exp", snapshot.exp); yaml.set(path + "total-experience", snapshot.totalExperience);
             yaml.set(path + "health", snapshot.health); yaml.set(path + "food", snapshot.food); yaml.set(path + "saturation", snapshot.saturation);
@@ -170,7 +176,7 @@ public final class VanishManager implements Listener {
         return copy;
     }
 
-    private record Snapshot(ItemStack[] inventory, GameMode gameMode, int level, float exp, int totalExperience,
+    private record Snapshot(ItemStack[] inventory, ItemStack cursor, GameMode gameMode, int level, float exp, int totalExperience,
                             double health, int food, float saturation, boolean allowFlight, boolean flying,
                             boolean invulnerable, boolean collidable) {}
 }

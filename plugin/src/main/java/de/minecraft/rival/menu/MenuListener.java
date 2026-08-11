@@ -31,7 +31,8 @@ public final class MenuListener implements Listener {
     public void openHelp(Player player) {
         Inventory menu = createMenu("help", 45, "Minecraft Rival • Spielerhilfe", ChatColor.AQUA);
         menu.setItem(10, helpItem(Material.COMPASS, "Start & Warteraum",
-            "Vor dem Start zeigt die Bossbar den Countdown.", "Ohne Seitenzuweisung bleibst du geschützt", "im festgelegten Warteraum."));
+            "Einzige Projektwelt: rival_main.", "Vor dem Start zeigt die Bossbar den Countdown.",
+            "Ohne Seitenzuweisung bleibst du geschützt", "im festgelegten Warteraum."));
         menu.setItem(11, helpItem(Material.REDSTONE, "Projekt-Herzen & Combat",
             "Du startest mit 3 Projekt-Herzen.", "Die Grafik sitzt mittig direkt über der Hotbar.", "Spielerschaden markiert beide 30 Sekunden.", "Nur ein Tod im Combat kostet ein Herz."));
         menu.setItem(12, helpItem(Material.PLAYER_HEAD, "Gräber",
@@ -76,7 +77,8 @@ public final class MenuListener implements Listener {
         menu.setItem(15, helpItem(Material.ENDER_EYE, "Vanish", "Inventar ausfallsicher speichern", "Creative, unsichtbar, keine Spielzeit"));
         menu.setItem(16, helpItem(Material.BOOK, "Vollständige Admin-Hilfe", "Klick oder /admin help"));
         menu.setItem(17, helpItem(plugin.projects().isStarted() ? Material.REDSTONE_BLOCK : Material.EMERALD_BLOCK,
-            "Projekt: " + (plugin.projects().isStarted() ? "GESTARTET" : "WARTERAUM"), "Klick: Projekt starten oder stoppen"));
+            "Projekt: " + (plugin.projects().isStarted() ? "GESTARTET" : "WARTERAUM"),
+            "Welt: rival_main", "Klick: Projekt starten oder stoppen"));
 
         menu.setItem(18, helpItem(Material.NETHERRACK, "Nether-Spawnrate: " + plugin.zones().spawnRate(ZoneManager.Zone.NETHER) + "%", "Links +10% • Rechts -10%"));
         menu.setItem(19, helpItem(Material.END_STONE, "End-Spawnrate: " + plugin.zones().spawnRate(ZoneManager.Zone.END) + "%", "Links +10% • Rechts -10%"));
@@ -207,7 +209,7 @@ public final class MenuListener implements Listener {
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Status: " + stateColor + state);
         lore.add((online ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "Verbindung: " + (online ? "ONLINE" : "OFFLINE"));
-        lore.add(ChatColor.GRAY + "Herzen: " + record.hearts() + "/3");
+        lore.add(ChatColor.GRAY + "Herzen: " + record.hearts() + "/" + plugin.getConfig().getInt("combat.maximum-hearts", 3));
         lore.add(ChatColor.GRAY + "Seite: " + (record.side() < 0 ? "NEGATIV" : record.side() > 0 ? "POSITIV" : "KEINE"));
         var clan = plugin.clans().clan(record.uuid());
         lore.add(ChatColor.GRAY + "Clan: " + (clan == null ? "–" : clan.name() + " [" + clan.tag() + "]"));

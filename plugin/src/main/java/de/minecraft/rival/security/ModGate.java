@@ -66,10 +66,8 @@ public final class ModGate implements Listener, PluginMessageListener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (!plugin.getConfig().getBoolean("security.require-client-mod", true)) {
-            verified.add(event.getPlayer().getUniqueId());
-            return;
-        }
+        // Auch im optionalen Modus muss die offizielle Mod den Server authentifizieren können.
+        // Der Schalter bestimmt nur, ob Spieler ohne registrierten Mod-Kanal abgewiesen werden.
         waitForClientChannel(event.getPlayer(), 0);
     }
 
@@ -103,7 +101,8 @@ public final class ModGate implements Listener, PluginMessageListener {
             Challenge current = pending.get(player.getUniqueId());
             if (current != null && current.expiresAt <= System.currentTimeMillis() && player.isOnline()) {
                 pending.remove(player.getUniqueId());
-                player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
+                if (plugin.getConfig().getBoolean("security.require-client-mod", true))
+                    player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             }
         }, plugin.getConfig().getLong("security.handshake-timeout-seconds", 8) * 20L + 2L);
     }
@@ -116,7 +115,8 @@ public final class ModGate implements Listener, PluginMessageListener {
         }
         long timeoutSeconds = plugin.getConfig().getLong("security.handshake-timeout-seconds", 8);
         if (attempts * 5L >= timeoutSeconds * 20L) {
-            player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
+            if (plugin.getConfig().getBoolean("security.require-client-mod", true))
+                player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> waitForClientChannel(player, attempts + 1), 5L);

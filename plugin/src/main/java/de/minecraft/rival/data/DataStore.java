@@ -37,6 +37,7 @@ public final class DataStore {
                 record.playDate(parseDate(yaml.getString(path + "play-date")));
                 record.playedSeconds(Math.max(0, yaml.getLong(path + "played-seconds")));
                 record.bossbar(yaml.getBoolean(path + "bossbar"));
+                record.bossbarSet(yaml.contains(path + "bossbar-set") ? yaml.getBoolean(path + "bossbar-set") : record.bossbar());
                 record.side(yaml.getInt(path + "side"));
                 record.nemesis(parseUuid(yaml.getString(path + "nemesis")));
                 record.nemesisRevealed(yaml.getBoolean(path + "nemesis-revealed"));
@@ -94,6 +95,7 @@ public final class DataStore {
             yaml.set(path + "play-date", record.playDate().toString());
             yaml.set(path + "played-seconds", record.playedSeconds());
             yaml.set(path + "bossbar", record.bossbar());
+            yaml.set(path + "bossbar-set", record.bossbarSet());
             yaml.set(path + "side", record.side());
             yaml.set(path + "nemesis", record.nemesis() == null ? null : record.nemesis().toString());
             yaml.set(path + "nemesis-revealed", record.nemesisRevealed());

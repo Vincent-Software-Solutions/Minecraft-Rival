@@ -57,8 +57,9 @@ public final class GraveManager implements Listener {
     }
 
     private void create(Player owner, Location source, List<ItemStack> items, long createdAt) {
-        World world = source.getWorld();
-        Location location = source.getBlock().getLocation().add(0.5, 0.05, 0.5);
+        if (!plugin.isMainWorld(source.getWorld())) source = plugin.mainWorld().getSpawnLocation();
+        World world = plugin.mainWorld();
+        Location location = safeGraveLocation(source);
         UUID id = UUID.randomUUID();
         GraveInventory holder = new GraveInventory(id);
         Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + owner.getName());
@@ -138,6 +139,52 @@ public final class GraveManager implements Listener {
         catch (IllegalArgumentException ignored) { return null; }
     }
 
+    private Location safeGraveLocation(Location source) {
+        World world = plugin.mainWorld();
+        int x = source.getBlockX();
+        int z = source.getBlockZ();
+        if (source.getY() < world.getMinHeight() || source.getY() >= world.getMaxHeight() - 1)
+            return surfaceGraveLocation(world, x, z);
+        int preferredY = Math.max(world.getMinHeight(), Math.min(world.getMaxHeight() - 2, source.getBlockY()));
+
+        // Zuerst bleibt das Grab möglichst nahe am Todesort (auch in Höhlen), sucht aber
+        // niemals in festen Blöcken oder Flüssigkeiten. Der Raum über dem Kopf wird für
+        // Kopf und Hologramm ebenfalls freigehalten.
+        for (int radius = 0; radius <= 3; radius++) {
+            for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+                if (radius > 0 && Math.abs(dx) != radius && Math.abs(dz) != radius) continue;
+                for (int offset = 0; offset <= 12; offset++) {
+                    int above = preferredY + offset;
+                    if (openGraveSpace(world, x + dx, above, z + dz))
+                        return centered(world, x + dx, above, z + dz);
+                    if (offset == 0) continue;
+                    int below = preferredY - offset;
+                    if (openGraveSpace(world, x + dx, below, z + dz))
+                        return centered(world, x + dx, below, z + dz);
+                }
+            }
+        }
+
+        return surfaceGraveLocation(world, x, z);
+    }
+
+    private static boolean openGraveSpace(World world, int x, int y, int z) {
+        if (y < world.getMinHeight() || y + 1 >= world.getMaxHeight()) return false;
+        var feet = world.getBlockAt(x, y, z);
+        var head = world.getBlockAt(x, y + 1, z);
+        return feet.isPassable() && head.isPassable() && !feet.isLiquid() && !head.isLiquid();
+    }
+
+    private static Location centered(World world, int x, int y, int z) {
+        return new Location(world, x + 0.5, y + 0.05, z + 0.5);
+    }
+
+    private static Location surfaceGraveLocation(World world, int x, int z) {
+        int y = Math.max(world.getMinHeight(), Math.min(world.getMaxHeight() - 2,
+            world.getHighestBlockYAt(x, z) + 1));
+        return centered(world, x, y, z);
+    }
+
     private void purgeExpired() {
         long lifetime = Duration.ofHours(plugin.getConfig().getLong("grave.lifetime-hours", 24)).toMillis();
         new ArrayList<>(graves.values()).stream()
@@ -197,9 +244,8 @@ public final class GraveManager implements Listener {
         for (String key : root.getKeys(false)) try {
             UUID id = UUID.fromString(key);
             String path = "graves." + key + ".";
-            World world = Bukkit.getWorld(Objects.requireNonNull(yaml.getString(path + "world")));
-            if (world == null) continue;
-            Location location = new Location(world, yaml.getDouble(path + "x"), yaml.getDouble(path + "y"), yaml.getDouble(path + "z"));
+            World world = plugin.mainWorld();
+            Location location = safeGraveLocation(new Location(world, yaml.getDouble(path + "x"), yaml.getDouble(path + "y"), yaml.getDouble(path + "z")));
             UUID owner = UUID.fromString(Objects.requireNonNull(yaml.getString(path + "owner")));
             String ownerName = yaml.getString(path + "owner-name", "Unbekannt");
             List<ItemStack> items = decode(yaml.getString(path + "items", ""));
@@ -210,6 +256,7 @@ public final class GraveManager implements Listener {
             plugin.getLogger().log(Level.WARNING, "Grab konnte nicht geladen werden: " + key, ex);
         }
         purgeExpired();
+        save();
     }
 
     private void createLoaded(UUID id, UUID owner, String ownerName, Location location, long createdAt, List<ItemStack> items) {
