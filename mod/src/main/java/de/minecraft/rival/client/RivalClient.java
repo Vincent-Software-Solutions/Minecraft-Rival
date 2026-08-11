@@ -1,44 +1,60 @@
 package de.minecraft.rival.client;
 
 import com.mojang.blaze3d.platform.IconSet;
-import de.minecraft.rival.client.net.AuthPayload;
-import de.minecraft.rival.client.net.StatePayload;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import com.mojang.logging.LogUtils;
+import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.event.EventNetworkChannel;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.List;
 import java.util.UUID;
-import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+import org.slf4j.Logger;
 
-public final class RivalClient implements ClientModInitializer {
+@Mod(RivalClient.MOD_ID)
+public final class RivalClient {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final String MOD_ID = "minecraft_rival";
     private static final byte PROTOCOL = 1;
     private static final String DENIED = "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server.";
-    private static final Identifier[] HEART_TEXTURES = {
+    private static final ResourceLocation AUTH_ID = new ResourceLocation("rival", "auth");
+    private static final ResourceLocation STATE_ID = new ResourceLocation("rival", "state");
+    private static final ResourceLocation REGISTER_ID = new ResourceLocation("minecraft", "register");
+    private static final ResourceLocation[] HEART_TEXTURES = {
         null,
-        Identifier.fromNamespaceAndPath("minecraft_rival", "textures/gui/hearts_1.png"),
-        Identifier.fromNamespaceAndPath("minecraft_rival", "textures/gui/hearts_2.png"),
-        Identifier.fromNamespaceAndPath("minecraft_rival", "textures/gui/hearts_3.png")
+        new ResourceLocation(MOD_ID, "textures/gui/hearts_1.png"),
+        new ResourceLocation(MOD_ID, "textures/gui/hearts_2.png"),
+        new ResourceLocation(MOD_ID, "textures/gui/hearts_3.png")
     };
     private static final int[] HEART_WIDTHS = {0, 28, 48, 46};
     private static final int[] HEART_HEIGHTS = {0, 24, 25, 35};
+
     private static volatile boolean authorized;
     private static volatile long authorizationDeadline;
     private static volatile int hearts = 3;
@@ -52,41 +68,88 @@ public final class RivalClient implements ClientModInitializer {
     private static boolean disconnecting;
     private static boolean customDebug;
     private static boolean iconInstalled;
+    private static boolean registrationPending;
 
-    @Override
-    public void onInitializeClient() {
-        PayloadTypeRegistry.playS2C().register(AuthPayload.ID, AuthPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(AuthPayload.ID, AuthPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(StatePayload.ID, StatePayload.CODEC);
+    private final EventNetworkChannel authChannel;
 
-        ClientPlayNetworking.registerGlobalReceiver(AuthPayload.ID, (payload, context) ->
-            context.client().execute(() -> receiveChallenge(payload.data())));
-        ClientPlayNetworking.registerGlobalReceiver(StatePayload.ID, (payload, context) ->
-            context.client().execute(() -> receiveState(payload.data())));
-
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            authorized = false;
-            disconnecting = false;
-            authorizationDeadline = System.currentTimeMillis() + 10_000L;
-            hearts = 3;
-            combatSeconds = 0;
-            nemesisRevealed = false;
-            nemesisName = "";
-            nemesisId = new UUID(0, 0);
-            clanName = "";
-            playtimeSeconds = 0;
-            playtimeEnabled = false;
-        });
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            authorized = false;
-            authorizationDeadline = 0;
-            combatSeconds = 0;
-        });
-        ClientTickEvents.END_CLIENT_TICK.register(RivalClient::enforceConnection);
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rival", "status"), RivalClient::renderHud);
+    public RivalClient() {
+        authChannel = NetworkRegistry.newEventChannel(
+            AUTH_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
+        EventNetworkChannel stateChannel = NetworkRegistry.newEventChannel(
+            STATE_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
+        authChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onAuthPayload);
+        stateChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onStatePayload);
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
-    private static void receiveChallenge(byte[] raw) {
+    private void onAuthPayload(NetworkEvent.ServerCustomPayloadEvent event) {
+        byte[] raw = copyPayload(event.getPayload());
+        LOGGER.debug("Rival-Authentifizierungsanfrage empfangen ({} Bytes).", raw.length);
+        event.getSource().get().enqueueWork(() -> receiveChallenge(raw));
+        event.getSource().get().setPacketHandled(true);
+    }
+
+    private void onStatePayload(NetworkEvent.ServerCustomPayloadEvent event) {
+        byte[] raw = copyPayload(event.getPayload());
+        LOGGER.debug("Rival-Spielstatus empfangen ({} Bytes).", raw.length);
+        event.getSource().get().enqueueWork(() -> receiveState(raw));
+        event.getSource().get().setPacketHandled(true);
+    }
+
+    private static byte[] copyPayload(FriendlyByteBuf payload) {
+        byte[] raw = new byte[payload.readableBytes()];
+        payload.getBytes(payload.readerIndex(), raw);
+        return raw;
+    }
+
+    @SubscribeEvent
+    public void onLogin(ClientPlayerNetworkEvent.LoggingIn event) {
+        LOGGER.debug("Rival-Clientverbindung wird initialisiert.");
+        authorized = false;
+        disconnecting = false;
+        authorizationDeadline = System.currentTimeMillis() + 10_000L;
+        hearts = 3;
+        combatSeconds = 0;
+        nemesisRevealed = false;
+        nemesisName = "";
+        nemesisId = new UUID(0, 0);
+        clanName = "";
+        playtimeSeconds = 0;
+        playtimeEnabled = false;
+        registrationPending = true;
+    }
+
+    @SubscribeEvent
+    public void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
+        authorized = false;
+        authorizationDeadline = 0;
+        combatSeconds = 0;
+        registrationPending = false;
+    }
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        enforceConnection(Minecraft.getInstance());
+    }
+
+    @SubscribeEvent
+    public void onScreenOpening(ScreenEvent.Opening event) {
+        if (event.getNewScreen() instanceof AccessibilityOnboardingScreen) {
+            Minecraft.getInstance().options.onboardAccessibility = true;
+            Minecraft.getInstance().options.save();
+            event.setNewScreen(new RivalTitleScreen());
+        } else if (event.getNewScreen() instanceof TitleScreen) {
+            event.setNewScreen(new RivalTitleScreen());
+        }
+    }
+
+    @SubscribeEvent
+    public void onHudRender(RenderGuiEvent.Post event) {
+        renderHud(event.getGuiGraphics());
+    }
+
+    private void receiveChallenge(byte[] raw) {
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(raw));
             if (in.readUnsignedByte() != PROTOCOL || in.readUnsignedByte() != 1) return;
@@ -100,7 +163,7 @@ public final class RivalClient implements ClientModInitializer {
                 deny(Minecraft.getInstance());
                 return;
             }
-            authorized = true;
+
             ByteArrayOutputStream response = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(response);
             out.writeByte(PROTOCOL);
@@ -108,8 +171,14 @@ public final class RivalClient implements ClientModInitializer {
             byte[] answer = hmac("client", nonce);
             out.writeInt(answer.length);
             out.write(answer);
-            ClientPlayNetworking.send(new AuthPayload(response.toByteArray()));
+            Minecraft client = Minecraft.getInstance();
+            if (client.getConnection() == null) return;
+            FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(response.toByteArray()));
+            client.getConnection().getConnection().send(new ServerboundCustomPayloadPacket(AUTH_ID, buffer));
+            authorized = true;
+            LOGGER.info("Rival-Server erfolgreich authentifiziert.");
         } catch (IOException | RuntimeException ignored) {
+            LOGGER.warn("Rival-Authentifizierungsanfrage war ungültig.");
             deny(Minecraft.getInstance());
         }
     }
@@ -143,18 +212,28 @@ public final class RivalClient implements ClientModInitializer {
 
     private static void enforceConnection(Minecraft client) {
         installBranding(client);
-        if (client.screen instanceof TitleScreen && !(client.screen instanceof RivalTitleScreen)) {
-            client.setScreen(new RivalTitleScreen());
-        }
-        if (client.debugEntries.isOverlayVisible()) {
-            client.debugEntries.setOverlayVisible(false);
+        if (client.options.renderDebug) {
+            client.options.renderDebug = false;
+            client.options.renderDebugCharts = false;
+            client.options.renderFpsChart = false;
             customDebug = !customDebug;
         }
-        for (Identifier entry : List.copyOf(client.debugEntries.getCurrentlyEnabled())) {
-            client.debugEntries.setStatus(entry, DebugScreenEntryStatus.NEVER);
-        }
         if (client.level == null || client.getConnection() == null || disconnecting) return;
-        if (client.hasSingleplayerServer() || (!authorized && authorizationDeadline > 0 && System.currentTimeMillis() >= authorizationDeadline)) deny(client);
+        if (registrationPending) {
+            sendChannelRegistration(client);
+            registrationPending = false;
+        }
+        if (client.hasSingleplayerServer()
+            || (!authorized && authorizationDeadline > 0 && System.currentTimeMillis() >= authorizationDeadline)) {
+            deny(client);
+        }
+    }
+
+    private static void sendChannelRegistration(Minecraft client) {
+        byte[] channels = (AUTH_ID + "\0" + STATE_ID + "\0").getBytes(StandardCharsets.UTF_8);
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(channels));
+        client.getConnection().getConnection().send(new ServerboundCustomPayloadPacket(REGISTER_ID, buffer));
+        LOGGER.debug("Rival-Plugin-Kanäle beim Server registriert.");
     }
 
     private static void installBranding(Minecraft client) {
@@ -164,14 +243,14 @@ public final class RivalClient implements ClientModInitializer {
             client.getWindow().setTitle("Minecraft Rival");
             iconInstalled = true;
         } catch (IOException | RuntimeException ignored) {
-            // Einige Plattformen (insbesondere macOS) verwalten das Dock-Icon außerhalb von GLFW.
+            // macOS und einzelne Window-Manager verwalten das Programmsymbol selbst.
         }
     }
 
     private static void deny(Minecraft client) {
-        if (disconnecting || client.level == null) return;
+        if (disconnecting || client.getConnection() == null) return;
         disconnecting = true;
-        client.disconnectFromWorld(Component.literal(DENIED));
+        client.getConnection().getConnection().disconnect(Component.literal(DENIED));
     }
 
     private static byte[] hmac(String role, byte[] nonce) {
@@ -186,13 +265,12 @@ public final class RivalClient implements ClientModInitializer {
         }
     }
 
-    // Absichtlich zerlegt; der Release-Build verschleiert zusätzlich Klassen und Member.
     private static String secret() {
         String[] fragments = {"981d4bb69183df44", "v1:cc676936b24d497a"};
         return fragments[1] + fragments[0];
     }
 
-    private static void renderHud(GuiGraphics graphics, net.minecraft.client.DeltaTracker delta) {
+    private static void renderHud(GuiGraphics graphics) {
         Minecraft client = Minecraft.getInstance();
         if (!authorized || client.player == null || client.options.hideGui) return;
         int center = graphics.guiWidth() / 2;
@@ -200,9 +278,9 @@ public final class RivalClient implements ClientModInitializer {
         int textureWidth = HEART_WIDTHS[heartCount];
         int textureHeight = HEART_HEIGHTS[heartCount];
         int hotbarTop = graphics.guiHeight() - 22;
-        int heartY = hotbarTop - 1 - textureHeight;
+        int heartY = hotbarTop - textureHeight;
         if (heartCount > 0) {
-            graphics.blit(RenderPipelines.GUI_TEXTURED, HEART_TEXTURES[heartCount], center - textureWidth / 2, heartY,
+            graphics.blit(HEART_TEXTURES[heartCount], center - textureWidth / 2, heartY,
                 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
         }
 
@@ -210,20 +288,20 @@ public final class RivalClient implements ClientModInitializer {
         int headY = heartY - 20;
         graphics.fill(headX - 1, headY - 1, headX + 17, headY + 17, 0xFF111111);
         PlayerInfo target = nemesisRevealed && client.getConnection() != null
-            ? client.getConnection().getOnlinePlayers().stream().filter(info -> info.getProfile().name().equalsIgnoreCase(nemesisName)).findFirst().orElse(null)
+            ? client.getConnection().getOnlinePlayers().stream()
+                .filter(info -> info.getProfile().getName().equalsIgnoreCase(nemesisName)).findFirst().orElse(null)
             : null;
-        if (target != null) PlayerFaceRenderer.draw(graphics, target.getSkin(), headX, headY, 16);
+        if (target != null) PlayerFaceRenderer.draw(graphics, target.getSkinLocation(), headX, headY, 16);
         else if (nemesisRevealed && !nemesisId.equals(new UUID(0, 0))) {
-            PlayerFaceRenderer.draw(graphics, DefaultPlayerSkin.get(nemesisId), headX, headY, 16);
-        }
-        else {
+            PlayerFaceRenderer.draw(graphics, DefaultPlayerSkin.getDefaultSkin(nemesisId), headX, headY, 16);
+        } else {
             graphics.fill(headX, headY, headX + 16, headY + 16, 0xFF050505);
             String marker = nemesisRevealed && !nemesisName.isBlank() ? nemesisName.substring(0, 1).toUpperCase() : "?";
             graphics.drawString(client.font, marker, center - client.font.width(marker) / 2, headY + 4, 0xFFFFFFFF, true);
         }
         if (nemesisRevealed && !nemesisName.isBlank()) {
-            int width = client.font.width(nemesisName);
-            graphics.drawString(client.font, nemesisName, center - width / 2, headY - 10, 0xFF55FFFF, true);
+            graphics.drawString(client.font, nemesisName, center - client.font.width(nemesisName) / 2,
+                headY - 10, 0xFF55FFFF, true);
         }
         if (combatSeconds > 0) {
             String combat = "Im Kampf • " + combatSeconds + "s";

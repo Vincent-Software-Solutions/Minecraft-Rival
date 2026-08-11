@@ -1,7 +1,7 @@
 name: MinecraftRival
 version: '${version}'
 main: de.minecraft.rival.RivalPlugin
-api-version: '1.21.11'
+api-version: '1.20'
 authors: [MinecraftRival]
 description: Serverseitige Spiellogik für Minecraft Rival
 softdepend: [PlaceholderAPI]

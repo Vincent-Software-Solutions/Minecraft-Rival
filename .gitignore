@@ -2,6 +2,8 @@
 build/
 **/build/
 run/
+mod/run-*/
+neoforge-*-installer.jar.log
 *.iml
 .idea/
 plugin/src/main/resources/data.yml

@@ -4,17 +4,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import net.minecraft.client.gui.screens.options.OptionsScreen;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /** Reduzierter Projekt-Startbildschirm ohne Singleplayer- oder Realms-Zugriff. */
 public final class RivalTitleScreen extends Screen {
-    private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
+    private static final ResourceLocation BACKGROUND = new ResourceLocation(
         "minecraft_rival", "textures/gui/title_background.png");
     private static final int BACKGROUND_WIDTH = 1672;
     private static final int BACKGROUND_HEIGHT = 941;
@@ -67,12 +65,12 @@ public final class RivalTitleScreen extends Screen {
         float x = (width - renderedWidth) / 2.0f;
         float y = (height - renderedHeight) / 2.0f;
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(scale, scale);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, 0, 0, 0, 0,
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0);
+        graphics.pose().scale(scale, scale, 1.0f);
+        graphics.blit(BACKGROUND, 0, 0, 0, 0,
             BACKGROUND_WIDTH, BACKGROUND_HEIGHT, BACKGROUND_WIDTH, BACKGROUND_HEIGHT);
-        graphics.pose().popMatrix();
+        graphics.pose().popPose();
 
         graphics.fill(0, 0, width, height, 0x16000000);
         graphics.fillGradient(0, height / 2, width, height, 0x00000000, 0x88000000);
@@ -105,7 +103,7 @@ public final class RivalTitleScreen extends Screen {
         }
 
         @Override
-        public void onPress(InputWithModifiers input) {
+        public void onPress() {
             action.run();
         }
 
@@ -115,16 +113,19 @@ public final class RivalTitleScreen extends Screen {
         }
 
         @Override
-        protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean highlighted = isHoveredOrFocused();
             int background = highlighted ? 0xE5263446 : 0xD9141D2A;
             int border = highlighted ? accent : 0x80566475;
-            fillRounded(graphics, getX(), getY(), getRight(), getBottom(), 5, 0x74000000);
-            fillRounded(graphics, getX() + 1, getY(), getRight() - 1, getBottom() - 2, 5, background);
-            graphics.fill(getX() + 5, getY(), getRight() - 5, getY() + 1, border);
-            graphics.fill(getX() + 1, getY() + 5, getX() + 3, getBottom() - 6, accent);
+            int right = getX() + getWidth();
+            int bottom = getY() + getHeight();
+            fillRounded(graphics, getX(), getY(), right, bottom, 5, 0x74000000);
+            fillRounded(graphics, getX() + 1, getY(), right - 1, bottom - 2, 5, background);
+            graphics.fill(getX() + 5, getY(), right - 5, getY() + 1, border);
+            graphics.fill(getX() + 1, getY() + 5, getX() + 3, bottom - 6, accent);
             graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, highlighted ? 0xFFFFFFFF : 0xFFE2E8F0);
+                getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2,
+                highlighted ? 0xFFFFFFFF : 0xFFE2E8F0);
         }
     }
 }
