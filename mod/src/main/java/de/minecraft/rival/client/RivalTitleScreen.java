@@ -61,11 +61,10 @@ public final class RivalTitleScreen extends Screen {
         graphics.fill(panelLeft + 14, panelTop, width / 2, panelTop + 2, 0xFF3DBDFF);
         graphics.fill(width / 2, panelTop, panelRight - 14, panelTop + 2, 0xFFFF4D57);
         graphics.drawCenteredString(font, "RIVAL PROJECT CLIENT", width / 2, panelTop + 10, 0xFFF4F7FB);
-        graphics.drawCenteredString(font, "by pluginsmc.com", width / 2, panelTop + 22, 0xFF8291A6);
 
         super.render(graphics, mouseX, mouseY, partialTick);
-        drawBrandBadge(graphics);
-        graphics.drawCenteredString(font, "Minecraft Rival 1.0  •  by pluginsmc.com", width / 2, height - 13, 0xFF9AA8BA);
+        drawCredit(graphics);
+        graphics.drawCenteredString(font, "Minecraft Rival 1.0", width / 2, height - 13, 0xFF9AA8BA);
     }
 
     private void renderFittedBackground(GuiGraphics graphics) {
@@ -86,13 +85,14 @@ public final class RivalTitleScreen extends Screen {
         graphics.fillGradient(0, height / 3, width, height, 0x00000000, 0x9A02050A);
     }
 
-    private void drawBrandBadge(GuiGraphics graphics) {
-        String brand = "CLIENT by pluginsmc.com";
-        int badgeWidth = font.width(brand) + 16;
-        int left = width - badgeWidth - 10;
-        fillRounded(graphics, left, 9, width - 10, 28, 6, 0xA5121B28);
-        graphics.fill(left + 7, 9, width - 17, 10, 0xFF4FC3FF);
-        graphics.drawString(font, brand, left + 8, 15, 0xFFD4DEEA, false);
+    private void drawCredit(GuiGraphics graphics) {
+        String credit = "by pluginsmc.com";
+        float scale = 0.70f;
+        graphics.pose().pushPose();
+        graphics.pose().scale(scale, scale, 1.0f);
+        int scaledWidth = Math.round(width / scale);
+        graphics.drawString(font, credit, scaledWidth - font.width(credit) - 9, 9, 0x809AA3AE, false);
+        graphics.pose().popPose();
     }
 
     @Override

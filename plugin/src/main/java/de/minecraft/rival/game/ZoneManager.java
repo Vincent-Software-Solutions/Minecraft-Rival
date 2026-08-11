@@ -2,7 +2,6 @@ package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
-import io.papermc.paper.event.entity.EntityMoveEvent;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -19,7 +18,12 @@ import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class ZoneManager implements Listener {
@@ -30,6 +34,7 @@ public final class ZoneManager implements Listener {
     private final NamespacedKey originSideKey;
     private final NamespacedKey projectileOriginKey;
     private final NamespacedKey projectileSideKey;
+    private final Map<UUID, Location> lastSafeMobLocations = new HashMap<>();
 
     public ZoneManager(RivalPlugin plugin) {
         this.plugin = plugin;
@@ -46,7 +51,7 @@ public final class ZoneManager implements Listener {
             else if (!(entity instanceof Player)) tag(entity, zoneAt(entity.getLocation()));
         }
         Bukkit.getScheduler().runTask(plugin, this::unloadForbiddenWorlds);
-        Bukkit.getScheduler().runTaskTimer(plugin, this::containMobProjectiles, 1L, 1L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::containMobsAndProjectiles, 1L, 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -70,14 +75,6 @@ public final class ZoneManager implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTransform(EntityTransformEvent event) {
         if (event.getTransformedEntities().stream().anyMatch(this::forbidden)) event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onMove(EntityMoveEvent event) {
-        LivingEntity entity = event.getEntity();
-        if (entity instanceof Player || !event.hasChangedPosition()) return;
-        Zone origin = origin(entity);
-        if (zoneAt(event.getTo()) != origin || sideAt(event.getTo()) != originSide(entity)) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -219,6 +216,7 @@ public final class ZoneManager implements Listener {
     private void tag(LivingEntity entity, Zone zone) {
         entity.getPersistentDataContainer().set(originKey, PersistentDataType.STRING, zone.name());
         entity.getPersistentDataContainer().set(originSideKey, PersistentDataType.INTEGER, sideAt(entity.getLocation()));
+        lastSafeMobLocations.put(entity.getUniqueId(), entity.getLocation().clone());
     }
 
     private Zone origin(LivingEntity entity) {
@@ -243,7 +241,38 @@ public final class ZoneManager implements Listener {
         return coordinate < split ? -1 : coordinate > split ? 1 : 0;
     }
 
-    private void containMobProjectiles() {
+    private void containMobsAndProjectiles() {
+        Set<UUID> activeMobs = new HashSet<>();
+        for (World world : Bukkit.getWorlds()) for (LivingEntity entity : world.getLivingEntities()) {
+            if (entity instanceof Player || entity.isDead()) continue;
+            UUID id = entity.getUniqueId();
+            activeMobs.add(id);
+            if (!isMainWorld(world) || forbidden(entity)) {
+                lastSafeMobLocations.remove(id);
+                entity.remove();
+                continue;
+            }
+
+            Zone expectedZone = origin(entity);
+            int expectedSide = originSide(entity);
+            Location current = entity.getLocation();
+            if (zoneAt(current) == expectedZone && sideAt(current) == expectedSide) {
+                lastSafeMobLocations.put(id, current.clone());
+                continue;
+            }
+
+            Location safe = lastSafeMobLocations.get(id);
+            if (safe != null && safe.getWorld() != null && safe.getWorld().equals(world)
+                && zoneAt(safe) == expectedZone && sideAt(safe) == expectedSide) {
+                entity.teleport(safe);
+                entity.setVelocity(new org.bukkit.util.Vector());
+            } else {
+                entity.remove();
+                lastSafeMobLocations.remove(id);
+            }
+        }
+        lastSafeMobLocations.keySet().retainAll(activeMobs);
+
         for (World world : Bukkit.getWorlds()) for (Projectile projectile : world.getEntitiesByClass(Projectile.class)) {
             if (!isMainWorld(world)) {
                 projectile.remove();

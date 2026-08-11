@@ -8,6 +8,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 public final class Messages {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder().character('&').hexColors().build();
+    private static final LegacyComponentSerializer SECTION = LegacyComponentSerializer.builder().character('§')
+        .hexColors().useUnusualXRepeatedCharacterHexFormat().build();
     private static Component prefix = LEGACY.deserialize("&#FF0000&lR&#FD462B&lI&#FA8B56&lV&#FCA359&lA&#FDBB5B&lL&#FFD35E&lS &r&8&l➜ ");
 
     private Messages() {}
@@ -37,6 +39,8 @@ public final class Messages {
     public static Component styledLine(String value) {
         return prefix.append(LEGACY.deserialize("&7" + (value == null ? "" : value)));
     }
+
+    public static String legacy(Component value) { return SECTION.serialize(value); }
 
     public static void normal(CommandSender sender, String value) { sender.sendMessage(normal(value)); }
     public static void error(CommandSender sender, String value) { sender.sendMessage(error(value)); }

@@ -2,38 +2,41 @@ package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.GameRule;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerAdvancementDoneEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 
 public final class PresentationListener implements Listener {
-    private final RivalPlugin plugin;
-    public PresentationListener(RivalPlugin plugin) { this.plugin = plugin; }
+    public PresentationListener(RivalPlugin plugin) {
+        Bukkit.getWorlds().forEach(this::hideAdvancements);
+    }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        event.joinMessage(Messages.value("", event.getPlayer().getName(), " betritt das Rival-Projekt."));
+        event.setJoinMessage(Messages.legacy(Messages.value("", event.getPlayer().getName(), " betritt das Rival-Projekt.")));
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        event.quitMessage(Messages.value("", event.getPlayer().getName(), " hat das Rival-Projekt verlassen."));
+        event.setQuitMessage(Messages.legacy(Messages.value("", event.getPlayer().getName(), " hat das Rival-Projekt verlassen.")));
     }
 
     @EventHandler
-    public void onAdvancement(PlayerAdvancementDoneEvent event) { event.message(null); }
+    public void onWorldLoad(WorldLoadEvent event) { hideAdvancements(event.getWorld()); }
 
+    @SuppressWarnings("deprecation")
     @EventHandler
-    public void onChat(AsyncChatEvent event) {
-        event.renderer((source, sourceDisplayName, message, viewer) ->
-            Component.text("", NamedTextColor.DARK_GRAY)
-                .append(sourceDisplayName.color(NamedTextColor.AQUA))
-                .append(Component.text(" » ", NamedTextColor.DARK_GRAY))
-                .append(message.color(NamedTextColor.GRAY)));
+    public void onChat(AsyncPlayerChatEvent event) {
+        event.setFormat(ChatColor.GOLD + "%1$s" + ChatColor.DARK_GRAY + " » " + ChatColor.GRAY + "%2$s");
+    }
+
+    private void hideAdvancements(org.bukkit.World world) {
+        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
     }
 }
