@@ -1,0 +1,51 @@
+plugins {
+    id 'fabric-loom'
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+}
+
+configurations { proguard }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    proguard 'com.guardsquare:proguard-base:7.9.1'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand(version: project.version) }
+}
+
+remapJar {
+    archiveBaseName = 'RivalMod-unobfuscated'
+}
+
+tasks.register('obfuscateRelease', JavaExec) {
+    group = 'build'
+    description = 'Erzeugt die zusätzlich verschleierte Release-Mod.'
+    dependsOn remapJar
+    classpath = configurations.proguard
+    mainClass = 'proguard.ProGuard'
+    doFirst {
+        def input = tasks.remapJar.archiveFile.get().asFile
+        def output = layout.buildDirectory.file("libs/RivalMod-${project.version}.jar").get().asFile
+        args '@proguard.pro', '-injars', input.absolutePath, '-outjars', output.absolutePath
+    }
+}
+
+tasks.named('build') { dependsOn 'obfuscateRelease' }

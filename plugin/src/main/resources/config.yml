@@ -1,0 +1,68 @@
+general:
+  timezone: Europe/Vienna
+  prefix: "&#FF0000&lR&#FD462B&lI&#FA8B56&lV&#FCA359&lA&#FDBB5B&lL&#FFD35E&lS &r&8&l➜ "
+  official-server-name: "Minecraft Rival"
+project:
+  started: false
+  start-at: ""
+  waiting-room: null
+  waiting-radius: 15.0
+  spawns:
+    negative: []
+    positive: []
+security:
+  require-client-mod: true
+  handshake-timeout-seconds: 8
+  # Vor Veröffentlichung ändern. Das gleiche Secret muss in der Mod gesetzt sein.
+  shared-secret: "v1:cc676936b24d497a981d4bb69183df44"
+combat:
+  duration-seconds: 30
+  starting-hearts: 3
+  maximum-hearts: 3
+grave:
+  lifetime-hours: 24
+playtime:
+  enabled: true
+  daily-minutes: 180
+  bossbar-default: false
+border:
+  enabled: true
+  world: world
+  axis: X
+  split-coordinate: 0.0
+  side-capacity: 50
+  activate-at: ""
+  deactivate-at: ""
+  # Nur die zusätzliche Partikel-Mitteltrennung; die echte Worldborder wird hier nicht verändert.
+  visual-distance: 24.0
+  particle-spacing: 2.5
+zones:
+  nether:
+    pos1: null
+    pos2: null
+    spawn-rate-percent: 100
+  end:
+    pos1: null
+    pos2: null
+    spawn-rate-percent: 100
+  overworld:
+    spawn-rate-percent: 100
+end-fight:
+  # Die echte Worldborder wird erst durch /admin endfight start temporär verwendet.
+  center-x: 0.5
+  center-y: 100.0
+  center-z: 0.5
+  border-size: 100.0
+clans:
+  maximum-members: 4
+moderation:
+  # Bei jeder vollständigen Schwelle (standardmäßig 3., 6., ... Warn) folgt der Auto-Bann.
+  warns-before-ban: 3
+  auto-ban-days: 5
+youtube:
+  # Zeitfenster für die anklickbare /youtube-Bestätigung.
+  confirmation-seconds: 30
+messages:
+  unauthorized-server: "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server."
+  eliminated: "Du hast alle Herzen verloren. Danke für deine Teilnahme"
+  playtime-expired: "Deine Tägliche Spielzeit ist abgelaufen, komme morgen wieder!"

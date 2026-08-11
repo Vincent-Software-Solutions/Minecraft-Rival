@@ -1,0 +1,57 @@
+name: MinecraftRival
+version: '${version}'
+main: de.minecraft.rival.RivalPlugin
+api-version: '1.21.11'
+authors: [MinecraftRival]
+description: Serverseitige Spiellogik für Minecraft Rival
+softdepend: [PlaceholderAPI]
+commands:
+  help:
+    description: Öffnet die Spielerhilfe
+    permission: rival.player.help
+  spielzeit:
+    description: Zeigt die tägliche Spielzeit
+    usage: /spielzeit [anzeige]
+    permission: rival.player.playtime
+  clan:
+    description: Clanverwaltung
+    usage: /clan <create|invite|accept|kick|leave|color|tag|info>
+    permission: rival.player.clan
+  youtube:
+    description: Aktiviert oder deaktiviert den YouTube-Aufnahmemodus
+    usage: /youtube [bestätigen]
+    permission: rival.player.youtube
+  rules:
+    aliases: [regeln]
+    description: Zeigt die Projektregeln
+    usage: /rules
+    permission: rival.player.rules
+  admin:
+    description: Rival-Administration
+    usage: /admin [mode|players|playtime|broadcast|rules|ban|unban|warn|warnings|help|...]
+    permission: rival.admin
+permissions:
+  rival.player:
+    description: Alle normalen Rival-Spielerrechte
+    default: true
+    children:
+      rival.player.help: true
+      rival.player.playtime: true
+      rival.player.clan: true
+      rival.player.youtube: true
+      rival.player.rules: true
+  rival.player.help:
+    default: true
+  rival.player.playtime:
+    default: true
+  rival.player.clan:
+    default: true
+  rival.player.youtube:
+    default: true
+  rival.player.rules:
+    default: true
+  rival.admin:
+    description: Vollzugriff auf Minecraft Rival
+    default: op
+    children:
+      rival.player: true

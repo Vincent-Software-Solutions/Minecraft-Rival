@@ -1,0 +1,7 @@
+.gradle/
+build/
+**/build/
+run/
+*.iml
+.idea/
+plugin/src/main/resources/data.yml
