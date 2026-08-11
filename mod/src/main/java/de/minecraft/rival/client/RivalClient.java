@@ -240,7 +240,7 @@ public final class RivalClient {
         if (iconInstalled) return;
         try (RivalIconPack icons = new RivalIconPack()) {
             client.getWindow().setIcon(icons, IconSet.RELEASE);
-            client.getWindow().setTitle("Minecraft Rival");
+            client.getWindow().setTitle("Minecraft Rival by pluginsmc.com");
             iconInstalled = true;
         } catch (IOException | RuntimeException ignored) {
             // macOS und einzelne Window-Manager verwalten das Programmsymbol selbst.
