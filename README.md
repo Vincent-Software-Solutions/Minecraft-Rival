@@ -2,7 +2,7 @@
 
 Minecraft Rival besteht aus zwei Teilen für **Minecraft Java 1.20.1**:
 
-- `plugin`: Paper-Plugin und alleinige Quelle für Herzen, Combat, Gräber, Spielzeit, Mitteltrennung, Endkampf, Erzfeinde, Clans, Regeln, Moderation und Administration.
+- `plugin`: Spigot-1.20.1-kompatibles Server-Plugin (auch für Paper/Mohist) und alleinige Quelle für Herzen, Combat, Gräber, Spielzeit, Mitteltrennung, Endkampf, Erzfeinde, Clans, Regeln, Moderation und Administration.
 - `mod`: zusätzlich obfuskierte NeoForge-Clientmod für Server-Handshake, texturbasiertes HUD, reduziertes F3 und den eigenen Rival-Startbildschirm.
 
 ## Voraussetzungen und Build
@@ -25,7 +25,7 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 
 ## Installation
 
-1. Plugin-JAR in den `plugins/`-Ordner des Paper-Servers kopieren.
+1. Plugin-JAR in den `plugins/`-Ordner des Paper-/Mohist-Servers kopieren.
 2. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen.
 3. NeoForge 47.1.106 für Minecraft 1.20.1 installieren und die obfuskierte Mod-JAR in den Client-Ordner `mods/` kopieren. Eine zusätzliche Fabric API wird nicht benötigt.
 4. Für eine vollständig dimensionslose Karte zusätzlich `misc.enable-nether: false` in `config/paper-global.yml` und `settings.allow-end: false` in `bukkit.yml` setzen. Das Plugin blockiert unabhängig davon Portale, Gateways und jeden Wechsel aus `border.world`; bereits geladene Nebenwelten werden entladen.

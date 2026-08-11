@@ -4,9 +4,8 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.data.PlayerRecord;
 import de.minecraft.rival.game.ZoneManager;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,13 +23,13 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class MenuListener implements Listener {
-    private static final Component CREDIT = Component.text("by pluginsmc.com", NamedTextColor.DARK_GRAY);
+    private static final String CREDIT = ChatColor.DARK_GRAY + "by pluginsmc.com";
     private final RivalPlugin plugin;
 
     public MenuListener(RivalPlugin plugin) { this.plugin = plugin; }
 
     public void openHelp(Player player) {
-        Inventory menu = createMenu("help", 45, "Minecraft Rival • Spielerhilfe", NamedTextColor.AQUA);
+        Inventory menu = createMenu("help", 45, "Minecraft Rival • Spielerhilfe", ChatColor.AQUA);
         menu.setItem(10, helpItem(Material.COMPASS, "Start & Warteraum",
             "Vor dem Start zeigt die Bossbar den Countdown.", "Ohne Seitenzuweisung bleibst du geschützt", "im festgelegten Warteraum."));
         menu.setItem(11, helpItem(Material.REDSTONE, "Projekt-Herzen & Combat",
@@ -65,7 +64,7 @@ public final class MenuListener implements Listener {
     }
 
     public void openAdmin(Player player) {
-        Inventory menu = createMenu("admin", 54, "Minecraft Rival • Administration", NamedTextColor.RED);
+        Inventory menu = createMenu("admin", 54, "Minecraft Rival • Administration", ChatColor.RED);
         boolean time = plugin.getConfig().getBoolean("playtime.enabled");
         boolean border = plugin.borders().isEnabled();
         menu.setItem(10, helpItem(time ? Material.LIME_DYE : Material.GRAY_DYE, "Spielzeit: " + onOff(time), "Klick: global umschalten"));
@@ -101,7 +100,7 @@ public final class MenuListener implements Listener {
         int pages = Math.max(1, (players.size() + 44) / 45);
         int page = Math.max(0, Math.min(pages - 1, requestedPage));
         Inventory menu = createMenu("players:" + page, 54,
-            "Rival • Spieler " + (page + 1) + "/" + pages, NamedTextColor.GOLD);
+            "Rival • Spieler " + (page + 1) + "/" + pages, ChatColor.GOLD);
         int start = page * 45;
         for (int slot = 0; slot < 45 && start + slot < players.size(); slot++)
             menu.setItem(slot, playerStatusItem(players.get(start + slot)));
@@ -115,7 +114,7 @@ public final class MenuListener implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder(false) instanceof MenuHolder holder)) return;
+        if (!(event.getInventory().getHolder() instanceof MenuHolder holder)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || holder.id.equals("help")) return;
         if (!plugin.adminMode().isActive(player)) {
@@ -174,7 +173,7 @@ public final class MenuListener implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder(false) instanceof MenuHolder) event.setCancelled(true);
+        if (event.getInventory().getHolder() instanceof MenuHolder) event.setCancelled(true);
     }
 
     private ItemStack endFightItem() {
@@ -189,8 +188,8 @@ public final class MenuListener implements Listener {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         meta.setOwnerProfile(Bukkit.createPlayerProfile(record.uuid(), record.lastName().equals("?") ? "Unbekannt" : record.lastName()));
-        meta.displayName(Component.text(record.lastName(), NamedTextColor.GOLD));
-        meta.lore(List.of(Component.text(record.hearts() + (record.hearts() == 1 ? " Herz" : " Herzen"), NamedTextColor.GRAY), CREDIT));
+        meta.setDisplayName(ChatColor.GOLD + record.lastName());
+        meta.setLore(List.of(ChatColor.GRAY + String.valueOf(record.hearts()) + (record.hearts() == 1 ? " Herz" : " Herzen"), CREDIT));
         item.setItemMeta(meta);
         return item;
     }
@@ -203,27 +202,27 @@ public final class MenuListener implements Listener {
         boolean online = Bukkit.getPlayer(record.uuid()) != null;
         boolean alive = !record.eliminated() && record.hearts() > 0;
         String state = !alive ? "AUSGESCHIEDEN" : record.side() == 0 ? "NICHT ZUGEWIESEN" : "IM SPIEL";
-        NamedTextColor stateColor = !alive ? NamedTextColor.RED : record.side() == 0 ? NamedTextColor.YELLOW : NamedTextColor.GREEN;
-        meta.displayName(Component.text(name, alive ? NamedTextColor.GOLD : NamedTextColor.DARK_GRAY));
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("Status: ", NamedTextColor.GRAY).append(Component.text(state, stateColor)));
-        lore.add(Component.text("Verbindung: " + (online ? "ONLINE" : "OFFLINE"), online ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
-        lore.add(Component.text("Herzen: " + record.hearts() + "/3", NamedTextColor.GRAY));
-        lore.add(Component.text("Seite: " + (record.side() < 0 ? "NEGATIV" : record.side() > 0 ? "POSITIV" : "KEINE"), NamedTextColor.GRAY));
+        ChatColor stateColor = !alive ? ChatColor.RED : record.side() == 0 ? ChatColor.YELLOW : ChatColor.GREEN;
+        meta.setDisplayName((alive ? ChatColor.GOLD : ChatColor.DARK_GRAY) + name);
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Status: " + stateColor + state);
+        lore.add((online ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "Verbindung: " + (online ? "ONLINE" : "OFFLINE"));
+        lore.add(ChatColor.GRAY + "Herzen: " + record.hearts() + "/3");
+        lore.add(ChatColor.GRAY + "Seite: " + (record.side() < 0 ? "NEGATIV" : record.side() > 0 ? "POSITIV" : "KEINE"));
         var clan = plugin.clans().clan(record.uuid());
-        lore.add(Component.text("Clan: " + (clan == null ? "–" : clan.name() + " [" + clan.tag() + "]"), NamedTextColor.GRAY));
-        lore.add(Component.text("YouTube: " + (plugin.youtube().isActive(record.uuid()) ? "AKTIV" : "AUS"),
-            plugin.youtube().isActive(record.uuid()) ? NamedTextColor.RED : NamedTextColor.GRAY));
+        lore.add(ChatColor.GRAY + "Clan: " + (clan == null ? "–" : clan.name() + " [" + clan.tag() + "]"));
+        lore.add((plugin.youtube().isActive(record.uuid()) ? ChatColor.RED : ChatColor.GRAY)
+            + "YouTube: " + (plugin.youtube().isActive(record.uuid()) ? "AKTIV" : "AUS"));
         int combat = plugin.combat().remainingSeconds(record.uuid());
-        lore.add(Component.text("Combat: " + (combat > 0 ? combat + "s" : "AUS"), combat > 0 ? NamedTextColor.RED : NamedTextColor.GRAY));
+        lore.add((combat > 0 ? ChatColor.RED : ChatColor.GRAY) + "Combat: " + (combat > 0 ? combat + "s" : "AUS"));
         Player onlinePlayer = Bukkit.getPlayer(record.uuid());
-        lore.add(Component.text("Admin/Vanish: " + (onlinePlayer != null && plugin.adminMode().isActive(onlinePlayer) ? "ADMIN" : "AUS")
-            + (onlinePlayer != null && plugin.vanish().isVanished(onlinePlayer) ? " + VANISH" : ""), NamedTextColor.GRAY));
-        lore.add(Component.text("Heute gespielt: " + plugin.playtime().formattedPlayed(record), NamedTextColor.GRAY));
-        lore.add(Component.text("Spielzeit übrig: " + plugin.playtime().formatted(record), NamedTextColor.GRAY));
-        lore.add(Component.empty());
+        lore.add(ChatColor.GRAY + "Admin/Vanish: " + (onlinePlayer != null && plugin.adminMode().isActive(onlinePlayer) ? "ADMIN" : "AUS")
+            + (onlinePlayer != null && plugin.vanish().isVanished(onlinePlayer) ? " + VANISH" : ""));
+        lore.add(ChatColor.GRAY + "Heute gespielt: " + plugin.playtime().formattedPlayed(record));
+        lore.add(ChatColor.GRAY + "Spielzeit übrig: " + plugin.playtime().formatted(record));
+        lore.add("");
         lore.add(CREDIT);
-        meta.lore(lore);
+        meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
     }
@@ -237,12 +236,12 @@ public final class MenuListener implements Listener {
     private static ItemStack helpItem(Material material, String name, String... lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(name, NamedTextColor.AQUA));
-        List<Component> lines = new ArrayList<>();
-        for (String line : lore) lines.add(Component.text(line, NamedTextColor.GRAY));
-        lines.add(Component.empty());
+        meta.setDisplayName(ChatColor.AQUA + name);
+        List<String> lines = new ArrayList<>();
+        for (String line : lore) lines.add(ChatColor.GRAY + line);
+        lines.add("");
         lines.add(CREDIT);
-        meta.lore(lines);
+        meta.setLore(lines);
         item.setItemMeta(meta);
         return item;
     }
@@ -250,15 +249,15 @@ public final class MenuListener implements Listener {
     private static ItemStack creditItem() {
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(CREDIT);
-        meta.lore(List.of(Component.text("Minecraft Rival Plugin & Mod", NamedTextColor.GRAY)));
+        meta.setDisplayName(CREDIT);
+        meta.setLore(List.of(ChatColor.GRAY + "Minecraft Rival Plugin & Mod"));
         item.setItemMeta(meta);
         return item;
     }
 
-    private static Inventory createMenu(String id, int size, String title, NamedTextColor color) {
+    private static Inventory createMenu(String id, int size, String title, ChatColor color) {
         MenuHolder holder = new MenuHolder(id);
-        Inventory inventory = Bukkit.createInventory(holder, size, Component.text(title, color));
+        Inventory inventory = Bukkit.createInventory(holder, size, color + title);
         holder.inventory = inventory;
         return inventory;
     }

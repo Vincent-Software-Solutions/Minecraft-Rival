@@ -2,7 +2,6 @@ package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -24,7 +23,7 @@ public final class AdminBroadcastManager {
 
     public void broadcastNow(String message) {
         String normalized = message == null ? "" : message.replace("\\n", "\n");
-        for (String line : normalized.split("\n", -1)) Bukkit.broadcast(Messages.styledLine(line));
+        for (String line : normalized.split("\n", -1)) Messages.broadcast(Messages.styledLine(line));
     }
 
     public void queue(Player admin, String message) {

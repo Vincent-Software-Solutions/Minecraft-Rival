@@ -193,7 +193,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             }
             case "player" -> {
                 if (args.length < 3) { Messages.error(sender, "/admin graves player <Spieler>"); return; }
-                OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(args[2]);
+                OfflinePlayer target = findPlayer(args[2]);
                 if (target == null) { Messages.error(sender, "Spieler nicht gefunden."); return; }
                 count = plugin.graves().deleteByOwner(target.getUniqueId());
             }
@@ -224,7 +224,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private void player(CommandSender sender, String[] args) {
         if (args.length < 3) { Messages.error(sender, "/admin player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]"); return; }
-        OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(args[2]);
+        OfflinePlayer target = findPlayer(args[2]);
         if (target == null) { Messages.error(sender, "Spieler nicht gefunden."); return; }
         PlayerRecord record = plugin.data().player(target.getUniqueId(), Optional.ofNullable(target.getName()).orElse(args[2]));
         try {
@@ -256,7 +256,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         plugin.data().save();
         Player online = target.getPlayer();
         if (online != null) {
-            if (record.eliminated()) online.kick(net.kyori.adventure.text.Component.text(plugin.getConfig().getString("messages.eliminated"), net.kyori.adventure.text.format.NamedTextColor.RED));
+            if (record.eliminated()) online.kickPlayer(plugin.getConfig().getString("messages.eliminated"));
             else { plugin.projects().playerAssigned(online); plugin.modGate().sendState(online); }
         }
         plugin.endFight().checkAutomaticStart();
@@ -398,7 +398,9 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
     private static OfflinePlayer findPlayer(String name) {
         Player online = Bukkit.getPlayerExact(name);
         if (online != null) return online;
-        return Bukkit.getOfflinePlayerIfCached(name);
+        return Arrays.stream(Bukkit.getOfflinePlayers())
+            .filter(player -> player.getName() != null && player.getName().equalsIgnoreCase(name))
+            .findFirst().orElse(null);
     }
 
     private void players(CommandSender sender, String[] args) {

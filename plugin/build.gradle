@@ -3,12 +3,15 @@ plugins {
 }
 
 repositories {
-    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
     maven { url = 'https://repo.extendedclip.com/releases/' }
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paper-api:${rootProject.paper_version}"
+    // Mohist 1.20.1 implements the Bukkit/Spigot surface, but not every Paper API
+    // convenience overload. Compiling against Spigot prevents incompatible calls
+    // such as Inventory#getHolder(false) from reaching the release jar.
+    compileOnly 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
     compileOnly 'me.clip:placeholderapi:2.11.7'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

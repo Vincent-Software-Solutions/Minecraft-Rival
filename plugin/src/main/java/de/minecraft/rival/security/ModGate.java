@@ -53,16 +53,14 @@ public final class ModGate implements Listener, PluginMessageListener {
     public void onLogin(PlayerLoginEvent event) {
         PlayerRecord record = data.player(event.getPlayer().getUniqueId(), event.getPlayer().getName());
         if (record.eliminated()) {
-            event.disallow(PlayerLoginEvent.Result.KICK_BANNED,
-                net.kyori.adventure.text.Component.text(plugin.getConfig().getString("messages.eliminated")));
+            event.disallow(PlayerLoginEvent.Result.KICK_BANNED, plugin.getConfig().getString("messages.eliminated"));
             return;
         }
         ZoneId zone = ZoneId.of(plugin.getConfig().getString("general.timezone", "Europe/Vienna"));
         if (plugin.getConfig().getBoolean("playtime.enabled") && record.playDate().equals(LocalDate.now(zone))
             && record.playedSeconds() >= plugin.getConfig().getLong("playtime.daily-minutes", 180) * 60L
             && !event.getPlayer().hasPermission("rival.admin")) {
-            event.disallow(PlayerLoginEvent.Result.KICK_BANNED,
-                net.kyori.adventure.text.Component.text(plugin.getConfig().getString("messages.playtime-expired")));
+            event.disallow(PlayerLoginEvent.Result.KICK_BANNED, plugin.getConfig().getString("messages.playtime-expired"));
         }
     }
 
@@ -105,7 +103,7 @@ public final class ModGate implements Listener, PluginMessageListener {
             Challenge current = pending.get(player.getUniqueId());
             if (current != null && current.expiresAt <= System.currentTimeMillis() && player.isOnline()) {
                 pending.remove(player.getUniqueId());
-                player.kick(net.kyori.adventure.text.Component.text(plugin.getConfig().getString("messages.unauthorized-server")));
+                player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             }
         }, plugin.getConfig().getLong("security.handshake-timeout-seconds", 8) * 20L + 2L);
     }
@@ -118,8 +116,7 @@ public final class ModGate implements Listener, PluginMessageListener {
         }
         long timeoutSeconds = plugin.getConfig().getLong("security.handshake-timeout-seconds", 8);
         if (attempts * 5L >= timeoutSeconds * 20L) {
-            player.kick(net.kyori.adventure.text.Component.text(
-                plugin.getConfig().getString("messages.unauthorized-server")));
+            player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> waitForClientChannel(player, attempts + 1), 5L);

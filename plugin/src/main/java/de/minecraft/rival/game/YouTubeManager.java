@@ -2,10 +2,11 @@ package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -51,10 +52,14 @@ public final class YouTubeManager implements Listener, CommandExecutor {
         long expires = System.currentTimeMillis() + plugin.getConfig().getLong("youtube.confirmation-seconds", 30) * 1000L;
         pending.put(player.getUniqueId(), new Pending(enabling, expires));
         Messages.normal(player, "Möchtest du den YouTube-Modus wirklich " + (enabling ? "aktivieren" : "deaktivieren") + "?");
-        Component confirmation = Component.text("[JETZT BESTÄTIGEN]", NamedTextColor.GREEN)
-            .clickEvent(ClickEvent.runCommand("/youtube bestätigen"))
-            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Bestätigen", NamedTextColor.GRAY)));
-        player.sendMessage(Messages.styledLine("").append(confirmation));
+        TextComponent confirmation = new TextComponent("[JETZT BESTÄTIGEN]");
+        confirmation.setColor(ChatColor.GREEN);
+        confirmation.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/youtube bestätigen"));
+        confirmation.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+            new ComponentBuilder("Klicken zum Bestätigen").color(ChatColor.GRAY).create()));
+        TextComponent line = new TextComponent(Messages.styledLine(""));
+        line.addExtra(confirmation);
+        player.spigot().sendMessage(line);
         Messages.normal(player, "Alternativ: /youtube bestätigen • Gültig für " + plugin.getConfig().getLong("youtube.confirmation-seconds", 30) + " Sekunden.");
         return true;
     }
@@ -72,20 +77,20 @@ public final class YouTubeManager implements Listener, CommandExecutor {
     private void activate(Player player) {
         if (!active.add(player.getUniqueId())) return;
         createDisplay(player);
-        Bukkit.broadcast(Messages.value("Der Spieler ", player.getName(), " hat eine YouTube aufnahme gestartet."));
+        Messages.broadcast(Messages.value("Der Spieler ", player.getName(), " hat eine YouTube aufnahme gestartet."));
     }
 
     private void deactivate(Player player, boolean announce) {
         if (!active.remove(player.getUniqueId())) return;
         removeDisplay(player.getUniqueId());
-        if (announce) Bukkit.broadcast(Messages.value("Der Spieler ", player.getName(), " hat seine YouTube Aufnahme beendet."));
+        if (announce) Messages.broadcast(Messages.value("Der Spieler ", player.getName(), " hat seine YouTube Aufnahme beendet."));
     }
 
     private void createDisplay(Player player) {
         removeDisplay(player.getUniqueId());
         Location location = labelLocation(player);
         TextDisplay display = player.getWorld().spawn(location, TextDisplay.class, text -> {
-            text.text(Messages.text(LABEL));
+            text.setText(Messages.text(LABEL));
             text.setBillboard(Display.Billboard.CENTER);
             text.setSeeThrough(false);
             text.setShadowed(true);
