@@ -1,15 +1,15 @@
 # Minecraft Rival
 
-Minecraft Rival besteht aus zwei Teilen für **Minecraft Java 1.21.11**:
+Minecraft Rival besteht aus zwei Teilen für **Minecraft Java 1.20.1**:
 
 - `plugin`: Paper-Plugin und alleinige Quelle für Herzen, Combat, Gräber, Spielzeit, Mitteltrennung, Endkampf, Erzfeinde, Clans, Regeln, Moderation und Administration.
-- `mod`: zusätzlich obfuskierte Fabric-Clientmod für Server-Handshake, texturbasiertes HUD, reduziertes F3 und den eigenen Rival-Startbildschirm.
+- `mod`: zusätzlich obfuskierte NeoForge-Clientmod für Server-Handshake, texturbasiertes HUD, reduziertes F3 und den eigenen Rival-Startbildschirm.
 
 ## Voraussetzungen und Build
 
-- Java 21
-- Paper 1.21.11
-- Fabric Loader 0.19.3 und Fabric API 0.141.6+1.21.11 auf den Clients
+- Java 17 oder neuer
+- Paper 1.20.1 auf dem Server
+- NeoForge 47.1.106 für Minecraft 1.20.1 auf den Clients
 
 ```bash
 ./gradlew clean build
@@ -27,7 +27,7 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 
 1. Plugin-JAR in den `plugins/`-Ordner des Paper-Servers kopieren.
 2. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen.
-3. Obfuskierte Mod-JAR und die passende Fabric API in den Client-Ordner `mods/` kopieren.
+3. NeoForge 47.1.106 für Minecraft 1.20.1 installieren und die obfuskierte Mod-JAR in den Client-Ordner `mods/` kopieren. Eine zusätzliche Fabric API wird nicht benötigt.
 4. Für eine vollständig dimensionslose Karte zusätzlich `misc.enable-nether: false` in `config/paper-global.yml` und `settings.allow-end: false` in `bukkit.yml` setzen. Das Plugin blockiert unabhängig davon Portale, Gateways und jeden Wechsel aus `border.world`; bereits geladene Nebenwelten werden entladen.
 5. Mit `/admin mode` den Admin-Modus aktivieren.
 6. Im Warteraum `/admin setlocation waiting` ausführen.

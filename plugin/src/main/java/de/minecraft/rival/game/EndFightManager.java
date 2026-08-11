@@ -142,7 +142,7 @@ public final class EndFightManager implements Listener {
         border.setCenter(snapshot.centerX, snapshot.centerZ);
         border.setSize(snapshot.size);
         border.setWarningDistance(snapshot.warningDistance);
-        border.setWarningTimeTicks(snapshot.warningTimeTicks);
+        border.setWarningTime(snapshot.warningTime);
         border.setDamageAmount(snapshot.damageAmount);
         border.setDamageBuffer(snapshot.damageBuffer);
         return true;
@@ -174,15 +174,15 @@ public final class EndFightManager implements Listener {
     public boolean isRunning() { return running; }
 
     private record BorderSnapshot(String world, double centerX, double centerZ, double size, int warningDistance,
-                                  int warningTimeTicks, double damageAmount, double damageBuffer) {
+                                  int warningTime, double damageAmount, double damageBuffer) {
         static BorderSnapshot capture(World world, WorldBorder border) {
             return new BorderSnapshot(world.getName(), border.getCenter().getX(), border.getCenter().getZ(), border.getSize(),
-                border.getWarningDistance(), border.getWarningTimeTicks(), border.getDamageAmount(), border.getDamageBuffer());
+                border.getWarningDistance(), border.getWarningTime(), border.getDamageAmount(), border.getDamageBuffer());
         }
 
         void save(YamlConfiguration yaml) {
             yaml.set("world", world); yaml.set("center-x", centerX); yaml.set("center-z", centerZ); yaml.set("size", size);
-            yaml.set("warning-distance", warningDistance); yaml.set("warning-time-ticks", warningTimeTicks);
+            yaml.set("warning-distance", warningDistance); yaml.set("warning-time", warningTime);
             yaml.set("damage-amount", damageAmount); yaml.set("damage-buffer", damageBuffer);
         }
 
@@ -190,7 +190,9 @@ public final class EndFightManager implements Listener {
             String world = yaml.getString("world");
             if (world == null || world.isBlank()) return null;
             return new BorderSnapshot(world, yaml.getDouble("center-x"), yaml.getDouble("center-z"), yaml.getDouble("size"),
-                yaml.getInt("warning-distance"), yaml.getInt("warning-time-ticks"), yaml.getDouble("damage-amount"), yaml.getDouble("damage-buffer"));
+                yaml.getInt("warning-distance"), yaml.contains("warning-time")
+                    ? yaml.getInt("warning-time") : yaml.getInt("warning-time-ticks") / 20,
+                yaml.getDouble("damage-amount"), yaml.getDouble("damage-buffer"));
         }
     }
 }

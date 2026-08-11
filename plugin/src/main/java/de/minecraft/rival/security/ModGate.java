@@ -72,7 +72,7 @@ public final class ModGate implements Listener, PluginMessageListener {
             verified.add(event.getPlayer().getUniqueId());
             return;
         }
-        Bukkit.getScheduler().runTaskLater(plugin, () -> issueChallenge(event.getPlayer()), 20L);
+        waitForClientChannel(event.getPlayer(), 0);
     }
 
     @EventHandler
@@ -108,6 +108,21 @@ public final class ModGate implements Listener, PluginMessageListener {
                 player.kick(net.kyori.adventure.text.Component.text(plugin.getConfig().getString("messages.unauthorized-server")));
             }
         }, plugin.getConfig().getLong("security.handshake-timeout-seconds", 8) * 20L + 2L);
+    }
+
+    private void waitForClientChannel(Player player, int attempts) {
+        if (!player.isOnline()) return;
+        if (player.getListeningPluginChannels().contains(AUTH_CHANNEL)) {
+            issueChallenge(player);
+            return;
+        }
+        long timeoutSeconds = plugin.getConfig().getLong("security.handshake-timeout-seconds", 8);
+        if (attempts * 5L >= timeoutSeconds * 20L) {
+            player.kick(net.kyori.adventure.text.Component.text(
+                plugin.getConfig().getString("messages.unauthorized-server")));
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> waitForClientChannel(player, attempts + 1), 5L);
     }
 
     @Override

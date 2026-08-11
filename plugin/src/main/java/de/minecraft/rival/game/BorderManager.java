@@ -117,7 +117,7 @@ public final class BorderManager implements Listener {
                     Location point = xAxis
                         ? new Location(player.getWorld(), split, origin.getY() + vertical, origin.getZ() + horizontal)
                         : new Location(player.getWorld(), origin.getX() + horizontal, origin.getY() + vertical, split);
-                    player.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, dust);
+                    player.spawnParticle(Particle.REDSTONE, point, 1, 0, 0, 0, 0, dust);
                 }
             }
         }
