@@ -74,8 +74,7 @@ public final class EndFightManager implements Listener {
         List<PlayerRecord> finalists = remainingPlayers();
         int online = (int) finalists.stream().filter(record -> Bukkit.getPlayer(record.uuid()) != null).count();
         if (!de.minecraft.rival.util.RivalRules.canStartEndFight(finalists.size(), online)) return false;
-        World world = Bukkit.getWorld(plugin.getConfig().getString("border.world", "world"));
-        if (world == null) return false;
+        World world = plugin.mainWorld();
 
         WorldBorder border = world.getWorldBorder();
         previous = BorderSnapshot.capture(world, border);
@@ -136,8 +135,9 @@ public final class EndFightManager implements Listener {
 
     private boolean restore(BorderSnapshot snapshot) {
         if (snapshot == null) return false;
-        World world = Bukkit.getWorld(snapshot.world);
-        if (world == null) return false;
+        World world = snapshot.world.equals(plugin.mainWorld().getName()) ? plugin.mainWorld() : Bukkit.getWorld(snapshot.world);
+        // Nach einer Umbenennung des bisherigen Weltordners gehört auch ein alter Snapshot zu rival_main.
+        if (world == null) world = plugin.mainWorld();
         WorldBorder border = world.getWorldBorder();
         border.setCenter(snapshot.centerX, snapshot.centerZ);
         border.setSize(snapshot.size);

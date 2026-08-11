@@ -41,7 +41,19 @@ public final class BorderManager implements Listener {
         PlayerRecord record = data.player(event.getPlayer().getUniqueId(), event.getPlayer().getName());
         if (allowed(record.side(), event.getTo())) return;
         event.setCancelled(true);
-        if (event instanceof PlayerTeleportEvent) Messages.error(event.getPlayer(), "Die Mittel-Border kann nicht überquert werden.");
+    }
+
+    /**
+     * PlayerTeleportEvent besitzt auf Bukkit/Mohist eine eigene Handlerliste und wird deshalb
+     * nicht verlässlich an einen reinen PlayerMoveEvent-Listener weitergereicht.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onTeleport(PlayerTeleportEvent event) {
+        if (!activeFor(event.getPlayer()) || event.getTo() == null || plugin.adminMode().isActive(event.getPlayer())) return;
+        PlayerRecord record = data.player(event.getPlayer().getUniqueId(), event.getPlayer().getName());
+        if (allowed(record.side(), event.getTo())) return;
+        event.setCancelled(true);
+        Messages.error(event.getPlayer(), "Die Mittel-Border kann nicht überquert werden.");
     }
 
     @EventHandler
@@ -78,7 +90,7 @@ public final class BorderManager implements Listener {
 
     private boolean activeFor(Player player) {
         return isEnabled() && plugin.projects().isParticipant(player)
-            && player.getWorld().getName().equals(plugin.getConfig().getString("border.world", "world"));
+            && plugin.isMainWorld(player.getWorld());
     }
 
     private boolean allowed(int side, Location location) {

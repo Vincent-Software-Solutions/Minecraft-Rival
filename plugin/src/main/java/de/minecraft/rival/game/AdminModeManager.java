@@ -30,8 +30,10 @@ public final class AdminModeManager implements Listener {
         if (isActive(player)) disable(player, true);
         else {
             active.add(player.getUniqueId());
+            plugin.combat().clearCombat(player);
             plugin.projects().hideCountdown(player);
             plugin.playtime().refreshVisibility(player);
+            plugin.modGate().sendState(player);
             Messages.normal(player, "Admin-Modus aktiviert. Adminbefehle sind jetzt verfügbar und deine Spielzeit pausiert.");
             player.sendMessage(Messages.value("Verbleibende Projektspieler: ", plugin.endFight().remainingPlayers().size(), " • Details: /admin endfight status"));
             plugin.broadcasts().flush(player);

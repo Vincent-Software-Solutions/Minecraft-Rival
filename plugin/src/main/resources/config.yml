@@ -27,7 +27,8 @@ playtime:
   bossbar-default: false
 border:
   enabled: true
-  world: world
+  # Fester Name der einzigen zugelassenen Serverwelt. Nicht ändern.
+  world: rival_main
   axis: X
   split-coordinate: 0.0
   side-capacity: 50

@@ -63,7 +63,7 @@ public final class CombatManager implements Listener {
         Player victim = event.getEntity();
         CombatTag tag = validTag(victim.getUniqueId());
         tags.remove(victim.getUniqueId());
-        if (tag == null) return;
+        if (tag == null || plugin.adminMode().isActive(victim)) return;
 
         PlayerRecord record = data.player(victim.getUniqueId(), victim.getName());
         record.hearts(Math.max(0, record.hearts() - 1));
@@ -144,6 +144,13 @@ public final class CombatManager implements Listener {
         }
         data.save();
         Bukkit.getOnlinePlayers().forEach(player -> plugin.modGate().sendState(player));
+    }
+
+    /** Entfernt beim Wechsel in den Admin-Modus beide Seiten einer laufenden Kampfbeziehung. */
+    public void clearCombat(Player player) {
+        UUID playerId = player.getUniqueId();
+        tags.remove(playerId);
+        tags.entrySet().removeIf(entry -> entry.getValue().opponent.equals(playerId));
     }
 
     private record CombatTag(UUID opponent, long until) {}

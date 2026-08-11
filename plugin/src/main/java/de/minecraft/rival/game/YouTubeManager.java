@@ -4,6 +4,7 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -57,8 +58,9 @@ public final class YouTubeManager implements Listener, CommandExecutor {
         confirmation.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/youtube bestätigen"));
         confirmation.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
             new ComponentBuilder("Klicken zum Bestätigen").color(ChatColor.GRAY).create()));
-        TextComponent line = new TextComponent(Messages.styledLine(""));
-        line.addExtra(confirmation);
+        BaseComponent[] prefix = TextComponent.fromLegacyText(Messages.styledLine(""));
+        BaseComponent[] line = Arrays.copyOf(prefix, prefix.length + 1);
+        line[prefix.length] = confirmation;
         player.spigot().sendMessage(line);
         Messages.normal(player, "Alternativ: /youtube bestätigen • Gültig für " + plugin.getConfig().getLong("youtube.confirmation-seconds", 30) + " Sekunden.");
         return true;

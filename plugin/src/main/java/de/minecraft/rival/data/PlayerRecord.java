@@ -11,6 +11,7 @@ public final class PlayerRecord {
     private LocalDate playDate;
     private long playedSeconds;
     private boolean bossbar;
+    private boolean bossbarSet;
     private int side;
     private UUID nemesis;
     private boolean nemesisRevealed;
@@ -36,6 +37,8 @@ public final class PlayerRecord {
     public void playedSeconds(long value) { playedSeconds = value; }
     public boolean bossbar() { return bossbar; }
     public void bossbar(boolean value) { bossbar = value; }
+    public boolean bossbarSet() { return bossbarSet; }
+    public void bossbarSet(boolean value) { bossbarSet = value; }
     public int side() { return side; }
     public void side(int value) { side = Integer.signum(value); }
     public UUID nemesis() { return nemesis; }

@@ -129,14 +129,16 @@ public final class PlaytimeManager implements Listener {
 
     public void toggleBar(Player player) {
         PlayerRecord record = current(player);
-        record.bossbar(!record.bossbar());
+        boolean visible = record.bossbarSet() ? record.bossbar() : plugin.getConfig().getBoolean("playtime.bossbar-default");
+        record.bossbar(!visible);
+        record.bossbarSet(true);
         showBar(player, record.bossbar());
         data.save();
     }
 
     public void refreshVisibility(Player player) {
         PlayerRecord record = current(player);
-        boolean wanted = record.bossbar() || plugin.getConfig().getBoolean("playtime.bossbar-default");
+        boolean wanted = record.bossbarSet() ? record.bossbar() : plugin.getConfig().getBoolean("playtime.bossbar-default");
         showBar(player, wanted && plugin.projects().isParticipant(player) && !plugin.adminMode().isActive(player));
     }
 
