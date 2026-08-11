@@ -24,7 +24,9 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
 
 public final class RivalClient implements ClientModInitializer {
     private static final byte PROTOCOL = 1;
@@ -147,6 +149,9 @@ public final class RivalClient implements ClientModInitializer {
         if (client.debugEntries.isOverlayVisible()) {
             client.debugEntries.setOverlayVisible(false);
             customDebug = !customDebug;
+        }
+        for (Identifier entry : List.copyOf(client.debugEntries.getCurrentlyEnabled())) {
+            client.debugEntries.setStatus(entry, DebugScreenEntryStatus.NEVER);
         }
         if (client.level == null || client.getConnection() == null || disconnecting) return;
         if (client.hasSingleplayerServer() || (!authorized && authorizationDeadline > 0 && System.currentTimeMillis() >= authorizationDeadline)) deny(client);
