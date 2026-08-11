@@ -1,9 +1,8 @@
 package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -79,7 +78,7 @@ public final class ModerationManager implements Listener {
         bans.put(target.getUniqueId(), record);
         save();
         Player online = target.getPlayer();
-        if (online != null) online.kick(kickMessage(record));
+        if (online != null) online.kickPlayer(kickMessage(record));
         return record;
     }
 
@@ -145,11 +144,11 @@ public final class ModerationManager implements Listener {
         if (record != null) event.disallow(PlayerLoginEvent.Result.KICK_BANNED, kickMessage(record));
     }
 
-    private Component kickMessage(BanRecord record) {
-        Component message = Component.text(record.permanent() ? "Du wurdest permanent gebannt." : "Du wurdest temporär gebannt.", NamedTextColor.RED)
-            .append(Component.newline()).append(Component.text("Grund: " + record.reason(), NamedTextColor.GRAY));
-        if (!record.permanent()) message = message.append(Component.newline())
-            .append(Component.text("Gebannt bis: " + DATE.format(Instant.ofEpochMilli(record.expiresAt())), NamedTextColor.GOLD));
+    private String kickMessage(BanRecord record) {
+        String message = ChatColor.RED + (record.permanent() ? "Du wurdest permanent gebannt." : "Du wurdest temporär gebannt.")
+            + "\n" + ChatColor.GRAY + "Grund: " + record.reason();
+        if (!record.permanent()) message += "\n" + ChatColor.GOLD
+            + "Gebannt bis: " + DATE.format(Instant.ofEpochMilli(record.expiresAt()));
         return message;
     }
 

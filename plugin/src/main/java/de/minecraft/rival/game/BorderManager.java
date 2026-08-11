@@ -67,7 +67,7 @@ public final class BorderManager implements Listener {
     public void setEnabled(boolean enabled) {
         plugin.getConfig().set("border.enabled", enabled);
         plugin.saveConfig();
-        Bukkit.broadcast(Messages.normal("Die Mittel-Border wurde " + (enabled ? "aktiviert." : "deaktiviert.")));
+        Messages.broadcast(Messages.normal("Die Mittel-Border wurde " + (enabled ? "aktiviert." : "deaktiviert.")));
     }
 
     public boolean isEnabled() { return plugin.getConfig().getBoolean("border.enabled", true) && !endFightOverride; }
@@ -109,7 +109,7 @@ public final class BorderManager implements Listener {
         Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(70, 150, 255), 0.8f);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!activeFor(player) || plugin.adminMode().isActive(player)) continue;
-            double coordinate = xAxis ? player.getX() : player.getZ();
+            double coordinate = xAxis ? player.getLocation().getX() : player.getLocation().getZ();
             if (Math.abs(coordinate - split) > distance) continue;
             Location origin = player.getLocation();
             for (double horizontal = -distance; horizontal <= distance; horizontal += spacing) {

@@ -138,7 +138,7 @@ public final class ZoneManager implements Listener {
         if (isMainWorld(event.getPlayer().getWorld())) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
             Location target = safeTarget(event.getPlayer());
-            if (target != null) event.getPlayer().teleportAsync(target);
+            if (target != null) event.getPlayer().teleport(target);
         });
     }
 

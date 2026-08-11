@@ -4,11 +4,12 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.data.DataStore;
 import de.minecraft.rival.data.PlayerRecord;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -62,7 +63,7 @@ public final class ProjectManager implements Listener {
         double radius = plugin.getConfig().getDouble("project.waiting-radius", 15);
         if (sameWorld(waiting, event.getTo()) && waiting.distanceSquared(event.getTo()) <= radius * radius) return;
         event.setCancelled(true);
-        event.getPlayer().teleportAsync(waiting);
+        event.getPlayer().teleport(waiting);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -81,7 +82,7 @@ public final class ProjectManager implements Listener {
         if (!player.isOnline() || plugin.adminMode().isActive(player)) return;
         Location destination = destination(player);
         if (destination != null && (!sameWorld(destination, player.getLocation()) || destination.distanceSquared(player.getLocation()) > 4)) {
-            player.teleportAsync(destination);
+            player.teleport(destination);
         }
         if (isParticipant(player)) hideCountdown(player); else showCountdown(player);
         plugin.playtime().refreshVisibility(player);
@@ -144,11 +145,11 @@ public final class ProjectManager implements Listener {
             int index = nextSpawn.getOrDefault(record.side(), 0);
             nextSpawn.put(record.side(), index + 1);
             hideCountdown(player);
-            player.teleportAsync(sideSpawns.get(index));
+            player.teleport(sideSpawns.get(index));
             plugin.playtime().refreshVisibility(player);
         }
         hideAllCountdowns();
-        Bukkit.broadcast(Messages.normal("Minecraft Rival beginnt jetzt! Viel Erfolg."));
+        Messages.broadcast(Messages.normal("Minecraft Rival beginnt jetzt! Viel Erfolg."));
         plugin.endFight().checkAutomaticStart();
         return true;
     }
@@ -160,7 +161,7 @@ public final class ProjectManager implements Listener {
         plugin.saveConfig();
         plugin.combat().resetNemeses();
         for (Player player : Bukkit.getOnlinePlayers()) placePlayer(player);
-        Bukkit.broadcast(Messages.normal("Das Projekt wurde gestoppt. Alle Spieler kehren in den Warteraum zurück."));
+        Messages.broadcast(Messages.normal("Das Projekt wurde gestoppt. Alle Spieler kehren in den Warteraum zurück."));
         return true;
     }
 
@@ -199,14 +200,14 @@ public final class ProjectManager implements Listener {
     public void showCountdown(Player player) {
         if (plugin.adminMode().isActive(player) || isParticipant(player)) return;
         BossBar bar = countdownBars.computeIfAbsent(player.getUniqueId(), ignored ->
-            BossBar.bossBar(Component.text("Warte auf Projektstart …", NamedTextColor.AQUA), 1, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS));
-        player.showBossBar(bar);
+            Bukkit.createBossBar(ChatColor.AQUA + "Warte auf Projektstart …", BarColor.BLUE, BarStyle.SOLID));
+        if (!bar.getPlayers().contains(player)) bar.addPlayer(player);
         updateBar(bar);
     }
 
     public void hideCountdown(Player player) {
         BossBar bar = countdownBars.remove(player.getUniqueId());
-        if (bar != null) player.hideBossBar(bar);
+        if (bar != null) bar.removePlayer(player);
     }
 
     private void hideAllCountdowns() {
@@ -231,15 +232,15 @@ public final class ProjectManager implements Listener {
 
     private void updateBar(BossBar bar) {
         if (isStarted()) {
-            bar.name(Component.text("Warte auf Seitenzuweisung …", NamedTextColor.YELLOW));
-            bar.progress(1);
-            bar.color(BossBar.Color.YELLOW);
+            bar.setTitle(ChatColor.YELLOW + "Warte auf Seitenzuweisung …");
+            bar.setProgress(1);
+            bar.setColor(BarColor.YELLOW);
             return;
         }
         Instant start = configuredStart();
         if (start == null) {
-            bar.name(Component.text("Warte auf Projektstart …", NamedTextColor.AQUA));
-            bar.progress(1);
+            bar.setTitle(ChatColor.AQUA + "Warte auf Projektstart …");
+            bar.setProgress(1);
             return;
         }
         long seconds = Math.max(0, Duration.between(Instant.now(), start).toSeconds());
@@ -247,9 +248,9 @@ public final class ProjectManager implements Listener {
         long hours = (seconds % 86400) / 3600;
         long minutes = (seconds % 3600) / 60;
         long rest = seconds % 60;
-        bar.name(Component.text("Projektstart in: %02d:%02d:%02d:%02d".formatted(days, hours, minutes, rest), NamedTextColor.AQUA));
-        bar.progress(Math.max(0, Math.min(1, seconds / (float) Math.max(1, initialCountdownSeconds))));
-        bar.color(seconds <= 60 ? BossBar.Color.RED : seconds <= 300 ? BossBar.Color.YELLOW : BossBar.Color.BLUE);
+        bar.setTitle(ChatColor.AQUA + "Projektstart in: %02d:%02d:%02d:%02d".formatted(days, hours, minutes, rest));
+        bar.setProgress(Math.max(0, Math.min(1, seconds / (double) Math.max(1, initialCountdownSeconds))));
+        bar.setColor(seconds <= 60 ? BarColor.RED : seconds <= 300 ? BarColor.YELLOW : BarColor.BLUE);
     }
 
     private Instant configuredStart() {

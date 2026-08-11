@@ -4,8 +4,6 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.data.DataStore;
 import de.minecraft.rival.data.PlayerRecord;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -62,7 +60,7 @@ public final class CombatManager implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent event) {
-        Player victim = event.getPlayer();
+        Player victim = event.getEntity();
         CombatTag tag = validTag(victim.getUniqueId());
         tags.remove(victim.getUniqueId());
         if (tag == null) return;
@@ -74,9 +72,9 @@ public final class CombatManager implements Listener {
         if (record.hearts() == 0) {
             record.eliminated(true);
             data.save();
-            Bukkit.broadcast(Messages.value("", victim.getName(), " hat alle Herzen verloren."));
+            Messages.broadcast(Messages.value("", victim.getName(), " hat alle Herzen verloren."));
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (victim.isOnline()) victim.kick(Component.text(plugin.getConfig().getString("messages.eliminated"), NamedTextColor.RED));
+                if (victim.isOnline()) victim.kickPlayer(plugin.getConfig().getString("messages.eliminated"));
                 endFight.checkAutomaticStart();
             }, 2L);
         } else {

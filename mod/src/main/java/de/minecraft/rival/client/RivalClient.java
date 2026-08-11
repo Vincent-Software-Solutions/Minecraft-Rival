@@ -54,8 +54,12 @@ public final class RivalClient {
         new ResourceLocation(MOD_ID, "textures/gui/hearts_2.png"),
         new ResourceLocation(MOD_ID, "textures/gui/hearts_3.png")
     };
-    private static final int[] HEART_WIDTHS = {0, 28, 48, 46};
-    private static final int[] HEART_HEIGHTS = {0, 24, 25, 35};
+    private static final int[] HEART_TEXTURE_WIDTHS = {0, 28, 48, 46};
+    private static final int[] HEART_TEXTURE_HEIGHTS = {0, 24, 25, 35};
+    // 40 % der gelieferten Grafiken: Ein sichtbares Herz ist damit etwa so groß
+    // wie ein Vanilla-HUD-Herz (9 x 9 Pixel), niemals größer.
+    private static final int[] HEART_RENDER_WIDTHS = {0, 11, 19, 18};
+    private static final int[] HEART_RENDER_HEIGHTS = {0, 10, 10, 14};
 
     private static volatile boolean authorized;
     private static volatile long authorizationDeadline;
@@ -282,13 +286,15 @@ public final class RivalClient {
         renderLowHealthVignette(graphics, client.player.getHealth() + client.player.getAbsorptionAmount());
         int center = graphics.guiWidth() / 2;
         int heartCount = Math.max(0, Math.min(3, hearts));
-        int textureWidth = HEART_WIDTHS[heartCount];
-        int textureHeight = HEART_HEIGHTS[heartCount];
+        int textureWidth = HEART_TEXTURE_WIDTHS[heartCount];
+        int textureHeight = HEART_TEXTURE_HEIGHTS[heartCount];
+        int renderWidth = HEART_RENDER_WIDTHS[heartCount];
+        int renderHeight = HEART_RENDER_HEIGHTS[heartCount];
         int hotbarTop = graphics.guiHeight() - 22;
-        int heartY = hotbarTop - textureHeight;
+        int heartY = hotbarTop - renderHeight;
         if (heartCount > 0) {
-            graphics.blit(HEART_TEXTURES[heartCount], center - textureWidth / 2, heartY,
-                0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
+            graphics.blit(HEART_TEXTURES[heartCount], center - renderWidth / 2, heartY,
+                renderWidth, renderHeight, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
         }
 
         int headX = center - 8;

@@ -4,10 +4,11 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.data.DataStore;
 import de.minecraft.rival.data.PlayerRecord;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -77,7 +78,7 @@ public final class PlaytimeManager implements Listener {
             updateBar(player);
             if (after <= 0) {
                 data.save();
-                player.kick(Component.text(plugin.getConfig().getString("messages.playtime-expired"), NamedTextColor.RED));
+                player.kickPlayer(plugin.getConfig().getString("messages.playtime-expired"));
             }
         }
         if (++secondsSinceSave >= 60) {
@@ -141,28 +142,28 @@ public final class PlaytimeManager implements Listener {
 
     private void showBar(Player player, boolean show) {
         if (!show) { hideBar(player); return; }
-        BossBar bar = bars.computeIfAbsent(player.getUniqueId(), ignored -> BossBar.bossBar(Component.empty(), 1, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS));
-        player.showBossBar(bar);
+        BossBar bar = bars.computeIfAbsent(player.getUniqueId(), ignored -> Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID));
+        if (!bar.getPlayers().contains(player)) bar.addPlayer(player);
         updateBar(player);
     }
 
     private void hideBar(Player player) {
         BossBar bar = bars.remove(player.getUniqueId());
-        if (bar != null) player.hideBossBar(bar);
+        if (bar != null) bar.removePlayer(player);
     }
 
     private void updateBar(Player player) {
         BossBar bar = bars.get(player.getUniqueId());
         if (bar == null) return;
         if (!plugin.getConfig().getBoolean("playtime.enabled", true)) {
-            bar.name(Component.text("Tägliche Spielzeit: deaktiviert", NamedTextColor.GRAY));
-            bar.progress(1);
+            bar.setTitle(ChatColor.GRAY + "Tägliche Spielzeit: deaktiviert");
+            bar.setProgress(1);
             return;
         }
         long remaining = remaining(current(player));
-        bar.name(Component.text("Spielzeit: " + formatted(player), NamedTextColor.AQUA));
-        bar.progress(Math.max(0, Math.min(1, remaining / (float) Math.max(1, totalSeconds()))));
-        bar.color(remaining <= 300 ? BossBar.Color.RED : remaining <= 900 ? BossBar.Color.YELLOW : BossBar.Color.BLUE);
+        bar.setTitle(ChatColor.AQUA + "Spielzeit: " + formatted(player));
+        bar.setProgress(Math.max(0, Math.min(1, remaining / (double) Math.max(1, totalSeconds()))));
+        bar.setColor(remaining <= 300 ? BarColor.RED : remaining <= 900 ? BarColor.YELLOW : BarColor.BLUE);
     }
 
     public long totalSeconds() { return Math.max(0, plugin.getConfig().getLong("playtime.daily-minutes", 180)) * 60L; }

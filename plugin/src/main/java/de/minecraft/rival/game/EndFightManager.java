@@ -92,10 +92,10 @@ public final class EndFightManager implements Listener {
         Location center = new Location(world, x, plugin.getConfig().getDouble("end-fight.center-y", 100), z);
         for (int i = 0; i < finalists.size(); i++) {
             Player player = Bukkit.getPlayer(finalists.get(i).uuid());
-            if (player != null) player.teleportAsync(center.clone().add(i == 0 ? -10 : 10, 0, 0));
+            if (player != null) player.teleport(center.clone().add(i == 0 ? -10 : 10, 0, 0));
         }
         running = true;
-        Bukkit.broadcast(Messages.normal("Der Endkampf beginnt! Die letzten zwei Spieler wurden zur Mittelinsel gerufen."));
+        Messages.broadcast(Messages.normal("Der Endkampf beginnt! Die letzten zwei Spieler wurden zur Mittelinsel gerufen."));
         return true;
     }
 
@@ -112,7 +112,7 @@ public final class EndFightManager implements Listener {
         readyNotified = false;
         borders.setEndFightOverride(false);
         clearPending();
-        if (announce) Bukkit.broadcast(Messages.normal("Der Endkampf wurde beendet und die ursprüngliche Worldborder wiederhergestellt."));
+        if (announce) Messages.broadcast(Messages.normal("Der Endkampf wurde beendet und die ursprüngliche Worldborder wiederhergestellt."));
         return true;
     }
 

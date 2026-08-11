@@ -2,8 +2,6 @@ package de.minecraft.rival.game;
 
 import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.util.Messages;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -45,16 +43,17 @@ public final class GraveManager implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(PlayerDeathEvent event) {
-        List<ItemStack> contents = new ArrayList<>(Arrays.stream(event.getPlayer().getInventory().getContents())
+        Player dead = event.getEntity();
+        List<ItemStack> contents = new ArrayList<>(Arrays.stream(dead.getInventory().getContents())
             .filter(Objects::nonNull).map(ItemStack::clone).toList());
-        ItemStack cursor = event.getPlayer().getItemOnCursor();
+        ItemStack cursor = dead.getItemOnCursor();
         if (!cursor.getType().isAir()) contents.add(cursor.clone());
-        event.getPlayer().setItemOnCursor(null);
-        event.getPlayer().getInventory().clear();
+        dead.setItemOnCursor(null);
+        dead.getInventory().clear();
         event.setKeepInventory(false);
         event.getDrops().clear();
         if (contents.isEmpty()) return;
-        create(event.getPlayer(), event.getPlayer().getLocation(), contents, System.currentTimeMillis());
+        create(dead, dead.getLocation(), contents, System.currentTimeMillis());
     }
 
     private void create(Player owner, Location source, List<ItemStack> items, long createdAt) {
@@ -62,7 +61,7 @@ public final class GraveManager implements Listener {
         Location location = source.getBlock().getLocation().add(0.5, 0.05, 0.5);
         UUID id = UUID.randomUUID();
         GraveInventory holder = new GraveInventory(id);
-        Inventory inventory = Bukkit.createInventory(holder, 54, Component.text("Grab von " + owner.getName(), NamedTextColor.DARK_GRAY));
+        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + owner.getName());
         holder.inventory = inventory;
         for (ItemStack item : items) inventory.addItem(item).values().forEach(left -> world.dropItemNaturally(location, left));
 
@@ -81,7 +80,7 @@ public final class GraveManager implements Listener {
             armor.getEquipment().setHelmet(head);
         });
         TextDisplay text = world.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
-            display.text(Component.text("Grab von " + owner.getName(), NamedTextColor.AQUA));
+            display.setText(ChatColor.AQUA + "Grab von " + owner.getName());
             display.setBillboard(Display.Billboard.CENTER);
             display.setSeeThrough(true);
             display.setInvulnerable(true);
@@ -126,7 +125,7 @@ public final class GraveManager implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder(false) instanceof GraveInventory holder)) return;
+        if (!(event.getInventory().getHolder() instanceof GraveInventory holder)) return;
         Grave grave = graves.get(holder.id);
         if (grave != null && grave.inventory.isEmpty()) remove(grave, false);
         else save();
@@ -216,7 +215,7 @@ public final class GraveManager implements Listener {
     private void createLoaded(UUID id, UUID owner, String ownerName, Location location, long createdAt, List<ItemStack> items) {
         World world = Objects.requireNonNull(location.getWorld());
         GraveInventory holder = new GraveInventory(id);
-        Inventory inventory = Bukkit.createInventory(holder, 54, Component.text("Grab von " + ownerName, NamedTextColor.DARK_GRAY));
+        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + ownerName);
         holder.inventory = inventory;
         items.stream().filter(Objects::nonNull).forEach(item -> inventory.addItem(item).values().forEach(left -> world.dropItemNaturally(location, left)));
         ArmorStand stand = world.spawn(location, ArmorStand.class, armor -> {
@@ -228,7 +227,7 @@ public final class GraveManager implements Listener {
             head.setItemMeta(meta); armor.getEquipment().setHelmet(head);
         });
         TextDisplay text = world.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
-            display.text(Component.text("Grab von " + ownerName, NamedTextColor.AQUA));
+            display.setText(ChatColor.AQUA + "Grab von " + ownerName);
             display.setBillboard(Display.Billboard.CENTER); display.setSeeThrough(true); display.setInvulnerable(true);
             display.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
         });

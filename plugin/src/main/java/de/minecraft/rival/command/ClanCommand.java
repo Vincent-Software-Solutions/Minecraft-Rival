@@ -22,7 +22,7 @@ public final class ClanCommand implements CommandExecutor, TabCompleter {
             case "create" -> { if (need(player, args, 2)) clans.create(player, args[1]); }
             case "invite" -> { if (need(player, args, 2)) { Player target = Bukkit.getPlayerExact(args[1]); if (target == null) Messages.error(player, "Spieler ist nicht online."); else clans.invite(player, target); } }
             case "accept" -> clans.accept(player);
-            case "kick" -> { if (need(player, args, 2)) { OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(args[1]); if (target == null) Messages.error(player, "Spieler nicht gefunden."); else clans.kick(player, target.getUniqueId()); } }
+            case "kick" -> { if (need(player, args, 2)) { OfflinePlayer target = findPlayer(args[1]); if (target == null) Messages.error(player, "Spieler nicht gefunden."); else clans.kick(player, target.getUniqueId()); } }
             case "leave" -> clans.leave(player);
             case "color" -> { if (need(player, args, 2)) clans.setColor(player, args[1]); }
             case "tag" -> { if (need(player, args, 2)) clans.setTag(player, args[1]); }
@@ -50,6 +50,14 @@ public final class ClanCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean need(Player player, String[] args, int count) { if (args.length >= count) return true; Messages.error(player, "Es fehlen Argumente. Nutze /clan help."); return false; }
+
+    private static OfflinePlayer findPlayer(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        if (online != null) return online;
+        return Arrays.stream(Bukkit.getOfflinePlayers())
+            .filter(player -> player.getName() != null && player.getName().equalsIgnoreCase(name))
+            .findFirst().orElse(null);
+    }
 
     @Override public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String @NotNull [] args) {
         if (args.length == 1) return filter(List.of("create", "invite", "accept", "kick", "leave", "color", "tag", "info", "help"), args[0]);
