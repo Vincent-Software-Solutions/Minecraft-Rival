@@ -2,6 +2,7 @@ package de.minecraft.rival.client;
 
 import com.mojang.blaze3d.platform.IconSet;
 import com.mojang.logging.LogUtils;
+import de.minecraft.rival.RivalMod;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,10 +18,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.event.EventNetworkChannel;
@@ -37,10 +39,10 @@ import java.security.MessageDigest;
 import java.util.UUID;
 import org.slf4j.Logger;
 
-@Mod(RivalClient.MOD_ID)
+@OnlyIn(Dist.CLIENT)
 public final class RivalClient {
     private static final Logger LOGGER = LogUtils.getLogger();
-    public static final String MOD_ID = "minecraft_rival";
+    public static final String MOD_ID = RivalMod.MOD_ID;
     private static final byte PROTOCOL = 1;
     private static final String DENIED = "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server.";
     private static final ResourceLocation AUTH_ID = new ResourceLocation("rival", "auth");
@@ -72,7 +74,11 @@ public final class RivalClient {
 
     private final EventNetworkChannel authChannel;
 
-    public RivalClient() {
+    public static void initialize() {
+        new RivalClient();
+    }
+
+    private RivalClient() {
         authChannel = NetworkRegistry.newEventChannel(
             AUTH_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
         EventNetworkChannel stateChannel = NetworkRegistry.newEventChannel(
