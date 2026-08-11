@@ -16,6 +16,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.logging.Level;
+
 public final class RivalPlugin extends JavaPlugin {
     private DataStore data;
     private ModGate modGate;
@@ -83,7 +85,14 @@ public final class RivalPlugin extends JavaPlugin {
         youtube.enable();
 
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new RivalExpansion(this, clans).register();
+            try {
+                if (!new RivalExpansion(this, clans).register()) {
+                    getLogger().warning("PlaceholderAPI hat die Rival-Erweiterung nicht registriert.");
+                }
+            } catch (LinkageError | RuntimeException ex) {
+                getLogger().log(Level.WARNING,
+                    "PlaceholderAPI ist nicht kompatibel; Minecraft Rival läuft ohne Placeholder weiter.", ex);
+            }
         }
         getLogger().info("Minecraft Rival ist bereit.");
     }

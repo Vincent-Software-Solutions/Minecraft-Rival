@@ -318,6 +318,19 @@ public final class RivalClient {
         if (customDebug) renderProjectDebug(graphics, client);
     }
 
+    public static void renderCredit(GuiGraphics graphics) {
+        Minecraft client = Minecraft.getInstance();
+        String credit = "by pluginsmc.com";
+        float scale = 0.70f;
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0f, 0.0f, 1000.0f);
+        graphics.pose().scale(scale, scale, 1.0f);
+        int scaledWidth = Math.round(graphics.guiWidth() / scale);
+        graphics.drawString(client.font, credit, scaledWidth - client.font.width(credit) - 9,
+            9, 0x809AA3AE, false);
+        graphics.pose().popPose();
+    }
+
     private static void renderLowHealthVignette(GuiGraphics graphics, float effectiveHealth) {
         if (effectiveHealth >= 7.0f) return;
         float danger = 1.0f - Math.max(0.0f, effectiveHealth) / 7.0f;
