@@ -36,6 +36,8 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 9. Spieler mit `/admin player side <Spieler> <-1|1>` zuweisen. Mit Wert `0` wird eine Zuweisung wieder entfernt.
 10. Optional `/admin project schedule 2026-08-11T20:00:00` setzen oder mit `/admin project start` manuell starten.
 
+> **Wichtig:** `RivalMod-1.0.jar` ist ausschließlich für die NeoForge-Clients und gehört nicht in den `mods/`-Ordner des Servers. Serverseitig wird nur `RivalPlugins-1.0.jar` benötigt. Offiziell unterstützt wird Paper 1.20.1; Hybridserver wie Mohist sind nicht erforderlich. Der Mod-Einstieg enthält dennoch einen zusätzlichen Dist-Schutz, damit bei einer versehentlichen serverseitigen Installation keine Minecraft-Clientklassen geladen werden.
+
 Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor einer echten Veröffentlichung sollte es sowohl in `config.yml` als auch in `RivalClient.secret()` geändert und die Mod danach neu gebaut werden. Ein Secret in einer Clientmod kann trotz Obfuskation grundsätzlich extrahiert werden. Die Lösung erschwert Manipulation durch ProGuard und Challenge/HMAC mit zufälliger Nonce, kann aber keine mathematisch perfekte Geheimhaltung auf einem fremden Client garantieren.
 
 ## Spielregeln
