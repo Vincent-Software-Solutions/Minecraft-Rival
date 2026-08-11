@@ -3,6 +3,7 @@ allprojects {
     version = '1.0'
 
     repositories {
+        maven { url = 'https://maven.neoforged.net/releases' }
         mavenCentral()
     }
 }

@@ -63,8 +63,8 @@ public final class RivalTitleScreen extends Screen {
         graphics.drawCenteredString(font, "RIVAL PROJECT CLIENT", width / 2, panelTop + 10, 0xFFF4F7FB);
 
         super.render(graphics, mouseX, mouseY, partialTick);
-        drawCredit(graphics);
-        graphics.drawCenteredString(font, "Minecraft Rival 1.0", width / 2, height - 13, 0xFF9AA8BA);
+        graphics.drawCenteredString(font, "Minecraft Rival 1.0 • by pluginsmc.com",
+            width / 2, height - 13, 0xFF9AA8BA);
     }
 
     private void renderFittedBackground(GuiGraphics graphics) {
@@ -83,16 +83,6 @@ public final class RivalTitleScreen extends Screen {
 
         graphics.fill(0, 0, width, height, 0x10000000);
         graphics.fillGradient(0, height / 3, width, height, 0x00000000, 0x9A02050A);
-    }
-
-    private void drawCredit(GuiGraphics graphics) {
-        String credit = "by pluginsmc.com";
-        float scale = 0.70f;
-        graphics.pose().pushPose();
-        graphics.pose().scale(scale, scale, 1.0f);
-        int scaledWidth = Math.round(width / scale);
-        graphics.drawString(font, credit, scaledWidth - font.width(credit) - 9, 9, 0x809AA3AE, false);
-        graphics.pose().popPose();
     }
 
     @Override

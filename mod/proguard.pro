@@ -12,6 +12,7 @@
 -keepclassmembers class de.minecraft.rival.client.RivalIconPack { *; }
 -keepclassmembers class de.minecraft.rival.client.RivalTitleScreen { *; }
 -keepclassmembers class de.minecraft.rival.client.RivalTitleScreen$* { *; }
+-keep class de.minecraft.rival.client.mixin.GameRendererMixin { *; }
 -keepclassmembers class * {
     @net.minecraftforge.eventbus.api.SubscribeEvent <methods>;
 }

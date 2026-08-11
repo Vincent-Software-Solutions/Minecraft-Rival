@@ -15,7 +15,7 @@ public final class RivalExpansion extends PlaceholderExpansion {
     public RivalExpansion(RivalPlugin plugin, ClanManager clans) { this.plugin = plugin; this.clans = clans; }
     @Override public @NotNull String getIdentifier() { return "rival"; }
     @Override public @NotNull String getAuthor() { return "MinecraftRival"; }
-    @Override public @NotNull String getVersion() { return plugin.getPluginMeta().getVersion(); }
+    @Override public @NotNull String getVersion() { return plugin.getDescription().getVersion(); }
     @Override public boolean persist() { return true; }
 
     @Override
