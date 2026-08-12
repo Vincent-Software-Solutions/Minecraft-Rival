@@ -11,8 +11,8 @@ logoBlur=false
 authors="Vincent Software Solutions · pluginsmc.com"
 displayTest="IGNORE_SERVER_VERSION"
 description='''
-Offizieller Minecraft-Rival-Client by pluginsmc.com für Menü, HUD, Serverprüfung und Projektanzeige.
-Nur clientseitig installieren; auf dem Server wird ausschließlich RivalPlugins benötigt.
+Offizieller Minecraft-Rival-Client by pluginsmc.com für Menü, HUD, Serverprüfung, Anti-X-Ray und zoombare Projektkarte.
+Clientseitig erforderlich; auf Mohist darf dieselbe JAR dank Dist-Schutz zusätzlich im mods-Ordner liegen.
 '''
 
 [[dependencies.minecraft_rival]]

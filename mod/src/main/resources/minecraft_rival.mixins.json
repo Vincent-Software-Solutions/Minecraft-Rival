@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "minecraft_rival.refmap.json",
   "client": [
+    "AntiXrayMixin",
     "GameRendererMixin"
   ],
   "injectors": {

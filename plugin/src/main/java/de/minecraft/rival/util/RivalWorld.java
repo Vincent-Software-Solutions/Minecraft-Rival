@@ -4,6 +4,7 @@ import de.minecraft.rival.RivalPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,23 +14,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-/** Central single-world policy. Gameplay is allowed only in the existing rival_main map. */
+/** Resolves the dedicated project map without requiring it to be the server's primary world. */
 public final class RivalWorld {
     public static final String NAME = "rival_main";
 
     private RivalWorld() {}
 
-    public static World loadExisting(RivalPlugin plugin) {
-        if (Bukkit.getWorlds().isEmpty() || !NAME.equals(Bukkit.getWorlds().get(0).getName())) {
-            plugin.getLogger().severe("Die primäre Serverwelt ist nicht '" + NAME + "'.");
-            plugin.getLogger().severe("Setze level-name=" + NAME + " in server.properties und starte den Server neu.");
-            return null;
-        }
+    public static World loadProjectWorld(RivalPlugin plugin) {
         World loaded = Bukkit.getWorld(NAME);
+        if (loaded == null) {
+            File folder = new File(Bukkit.getWorldContainer(), NAME);
+            if (!folder.isDirectory()) {
+                plugin.getLogger().severe("Der zusätzliche Weltordner '" + folder.getAbsolutePath() + "' wurde nicht gefunden.");
+                plugin.getLogger().severe("Lege die Projektwelt als Ordner '" + NAME + "' neben der normalen Welt ab.");
+                return null;
+            }
+            try {
+                plugin.getLogger().info("Lade zusätzliche Projektwelt '" + NAME + "' ...");
+                loaded = Bukkit.createWorld(new WorldCreator(NAME).environment(World.Environment.NORMAL));
+            } catch (RuntimeException ex) {
+                plugin.getLogger().log(Level.SEVERE, "Die zusätzliche Projektwelt '" + NAME + "' konnte nicht geladen werden.", ex);
+                return null;
+            }
+        }
         if (loaded == null || loaded.getEnvironment() != World.Environment.NORMAL) {
             plugin.getLogger().severe("'" + NAME + "' muss eine normale Overworld sein.");
             return null;
         }
+        plugin.getLogger().info("Projektwelt erkannt: " + loaded.getName()
+            + " (primäre Serverwelt: " + Bukkit.getWorlds().get(0).getName() + ")");
         return loaded;
     }
 

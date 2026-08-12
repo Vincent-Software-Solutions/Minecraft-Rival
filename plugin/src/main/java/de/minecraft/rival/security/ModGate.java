@@ -119,7 +119,7 @@ public final class ModGate implements Listener, PluginMessageListener {
                 player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             return;
         }
-        Bukkit.getScheduler().runTaskLater(plugin, () -> waitForClientChannel(player, attempts + 1), 5L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> waitForClientChannel(player, attempts + 1), 2L);
     }
 
     @Override

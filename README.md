@@ -25,10 +25,10 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 
 ## Installation
 
-1. Den Server stoppen und den einzigen Kartenordner exakt `rival_main` nennen.
-2. In `server.properties` `level-name=rival_main` und `allow-nether=false` setzen; in `bukkit.yml` zusätzlich `settings.allow-end: false` setzen.
-3. Plugin-JAR in den `plugins/`-Ordner des Paper-/Mohist-Servers kopieren. Das Plugin aktiviert sich absichtlich nicht, wenn `rival_main` nicht die primäre Overworld ist.
-4. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen. Alte gespeicherte Weltverweise werden automatisch auf `rival_main` migriert.
+1. Den Server stoppen und den Projektwelt-Ordner exakt `rival_main` nennen. Er liegt **zusätzlich** neben der normalen Hauptwelt (`world` oder ein beliebiger anderer `level-name`).
+2. In `server.properties` `allow-nether=false` setzen; in `bukkit.yml` zusätzlich `settings.allow-end: false` setzen. `level-name` muss nicht geändert werden.
+3. Plugin-JAR in den `plugins/`-Ordner des Paper-/Mohist-Servers kopieren. Das Plugin erkennt eine bereits geladene `rival_main` oder lädt den vorhandenen zusätzlichen Weltordner selbst.
+4. Server einmal starten und `plugins/MinecraftRival/config.yml` prüfen. Alte gespeicherte Projektpositionen werden automatisch auf `rival_main` migriert.
 5. NeoForge 47.1.106 für Minecraft 1.20.1 installieren und die obfuskierte Mod-JAR in den Client-Ordner `mods/` kopieren. Eine zusätzliche Fabric API wird nicht benötigt.
 6. Mit `/admin mode` den Admin-Modus aktivieren.
 7. Im Warteraum `/admin setlocation waiting` ausführen.
@@ -84,10 +84,16 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 
 ### Inselzonen, Mobs und Dimensionen
 
-- Es existiert gameplayseitig und serverseitig nur die feste Hauptwelt `rival_main`. Andere Weltziele, Portale, Gateways und Dimensionswechsel werden blockiert; zusätzlich geladene Welten werden nach dem Rücktransport aller Spieler entladen.
+- Die Rival-Spiellogik läuft ausschließlich in der zusätzlichen Projektwelt `rival_main`. Die normale Server-Hauptwelt darf beliebig heißen und bleibt bestehen; Projektspieler werden sicher nach `rival_main` geführt. Nether-/End-Ziele, Portale und Gateways bleiben für das Projekt blockiert.
 - Nether- und End-Insel sind zwei rechteckige X/Z-Zonen auf derselben Karte. Zwei Adminpunkte legen die Fläche fest; die Zone gilt über **alle Y-Höhen**.
 - Jeder Mob erhält beim Spawn seine Ursprungszone und Hauptkartenseite. Mobbewegung, Teleports und von Mobs abgeschossene Projektile dürfen weder eine Inselzonengrenze noch die zentrale Seitentrennung passieren.
 - Außerhalb der beiden Spezialzonen gilt automatisch `overworld`. Welche normalen Mobs erscheinen können, bestimmt weiterhin das jeweilige Biom.
+
+### Projektkarte und X-Ray-Schutz
+
+- Die mitgelieferte Projektkarte öffnet sich standardmäßig mit `J`. Die Belegung ist unter Optionen → Steuerung → Minecraft Rival frei änderbar.
+- Das Mausrad zoomt weich; mit gedrückter linker Maustaste lässt sich die Karte verschieben. `R` setzt Zoom und Position zurück.
+- Bekannte X-Ray-/Cheat-Mods und entsprechend benannte Ressourcenpakete werden beim Beitritt abgewiesen. Zusätzlich rendert die Mod vollständig verdeckte Erze nicht, sodass transparente X-Ray-Texturen sie nicht sichtbar machen.
 - Die natürliche Spawnrate ist für `nether`, `end` und `overworld` separat zwischen 0 und 100 Prozent einstellbar. 100 Prozent entspricht der normalen biomabhängigen Rate.
 - Villager und Wandering Trader spawnen nicht. Vorhandene werden entfernt, Transformationen zu Villagern und alle Merchant-Handelsfenster werden blockiert.
 

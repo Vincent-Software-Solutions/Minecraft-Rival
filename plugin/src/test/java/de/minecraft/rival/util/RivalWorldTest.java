@@ -15,4 +15,8 @@ class RivalWorldTest {
         assertEquals("# world: old", RivalWorld.rewriteWorldLine("# world: old"));
         assertEquals("name: world", RivalWorld.rewriteWorldLine("name: world"));
     }
+
+    @Test void projectWorldNameIsIndependentFromThePrimaryWorldName() {
+        assertEquals("rival_main", RivalWorld.NAME);
+    }
 }

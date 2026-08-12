@@ -1,10 +1,12 @@
 package de.minecraft.rival.client;
 
 import com.mojang.blaze3d.platform.IconSet;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import de.minecraft.rival.RivalMod;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
@@ -16,6 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.api.distmarker.Dist;
@@ -26,6 +29,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.event.EventNetworkChannel;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,7 +41,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 
 @OnlyIn(Dist.CLIENT)
@@ -60,6 +68,12 @@ public final class RivalClient {
     // wie ein Vanilla-HUD-Herz (9 x 9 Pixel), niemals größer.
     private static final int[] HEART_RENDER_WIDTHS = {0, 11, 19, 18};
     private static final int[] HEART_RENDER_HEIGHTS = {0, 10, 10, 14};
+    private static final long AUTHORIZATION_TIMEOUT_MS = 3_000L;
+    private static final KeyMapping OPEN_MAP = new KeyMapping(
+        "key.minecraft_rival.open_map", InputConstants.Type.KEYSYM, 74, "key.categories.minecraft_rival");
+    private static final Set<String> FORBIDDEN_MOD_MARKERS = Set.of(
+        "xray", "x-ray", "freecam", "baritone", "wurst", "meteor", "impact", "aristois",
+        "liquidbounce", "cheat", "wallhack", "seedcracker", "orefinder", "findercompass");
 
     private static volatile boolean authorized;
     private static volatile long authorizationDeadline;
@@ -79,7 +93,20 @@ public final class RivalClient {
     private final EventNetworkChannel authChannel;
 
     public static void initialize() {
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(RivalClient::registerKeys);
         new RivalClient();
+    }
+
+    public static void registerKeys(RegisterKeyMappingsEvent event) {
+        event.register(OPEN_MAP);
+    }
+
+    static boolean matchesMapKey(int keyCode, int scanCode) {
+        return OPEN_MAP.matches(keyCode, scanCode);
+    }
+
+    static String mapKeyLabel() {
+        return OPEN_MAP.getTranslatedKeyMessage().getString();
     }
 
     private RivalClient() {
@@ -117,7 +144,7 @@ public final class RivalClient {
         LOGGER.debug("Rival-Clientverbindung wird initialisiert.");
         authorized = false;
         disconnecting = false;
-        authorizationDeadline = System.currentTimeMillis() + 10_000L;
+        authorizationDeadline = System.currentTimeMillis() + AUTHORIZATION_TIMEOUT_MS;
         hearts = 3;
         combatSeconds = 0;
         nemesisRevealed = false;
@@ -140,7 +167,12 @@ public final class RivalClient {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        enforceConnection(Minecraft.getInstance());
+        Minecraft client = Minecraft.getInstance();
+        while (OPEN_MAP.consumeClick()) {
+            if (client.level != null && client.player != null && authorized && !(client.screen instanceof RivalMapScreen))
+                client.setScreen(new RivalMapScreen());
+        }
+        enforceConnection(client);
     }
 
     @SubscribeEvent
@@ -152,6 +184,16 @@ public final class RivalClient {
         } else if (event.getNewScreen() instanceof TitleScreen) {
             event.setNewScreen(new RivalTitleScreen());
         }
+    }
+
+    @SubscribeEvent
+    public void onScreenRender(ScreenEvent.Render.Pre event) {
+        if (!RivalScreenStyle.applies(event.getScreen())) return;
+        RivalScreenStyle.renderBackground(event.getScreen(), event.getGuiGraphics());
+        event.getScreen().renderables.stream()
+            .filter(net.minecraft.client.gui.components.AbstractButton.class::isInstance)
+            .forEach(renderable -> renderable.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick()));
+        event.setCanceled(true);
     }
 
     @SubscribeEvent
@@ -229,13 +271,18 @@ public final class RivalClient {
             customDebug = !customDebug;
         }
         if (client.level == null || client.getConnection() == null || disconnecting) return;
+        String forbidden = forbiddenModification();
+        if (forbidden != null) {
+            deny(client, "Nicht zugelassene Client-Modifikation erkannt: " + forbidden);
+            return;
+        }
         if (registrationPending) {
             sendChannelRegistration(client);
             registrationPending = false;
         }
         if (client.hasSingleplayerServer()
             || (!authorized && authorizationDeadline > 0 && System.currentTimeMillis() >= authorizationDeadline)) {
-            deny(client);
+            deny(client, DENIED);
         }
     }
 
@@ -258,9 +305,28 @@ public final class RivalClient {
     }
 
     private static void deny(Minecraft client) {
+        deny(client, DENIED);
+    }
+
+    private static void deny(Minecraft client, String reason) {
         if (disconnecting || client.getConnection() == null) return;
         disconnecting = true;
-        client.getConnection().getConnection().disconnect(Component.literal(DENIED));
+        client.getConnection().getConnection().disconnect(Component.literal(reason));
+    }
+
+    private static String forbiddenModification() {
+        for (var mod : ModList.get().getMods()) {
+            String identity = (mod.getModId() + " " + mod.getDisplayName()).toLowerCase(Locale.ROOT);
+            for (String marker : FORBIDDEN_MOD_MARKERS) if (identity.contains(marker)) return mod.getDisplayName();
+        }
+        Minecraft client = Minecraft.getInstance();
+        if (client.getResourcePackRepository() != null) {
+            String packs = client.getResourcePackRepository().getSelectedPacks().stream()
+                .map(pack -> pack.getId() + " " + pack.getTitle().getString())
+                .collect(Collectors.joining(" ")).toLowerCase(Locale.ROOT);
+            for (String marker : FORBIDDEN_MOD_MARKERS) if (packs.contains(marker)) return "X-Ray-Ressourcenpaket";
+        }
+        return null;
     }
 
     private static byte[] hmac(String role, byte[] nonce) {
