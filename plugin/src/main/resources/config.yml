@@ -12,7 +12,7 @@ project:
     positive: []
 security:
   require-client-mod: true
-  handshake-timeout-seconds: 8
+  handshake-timeout-seconds: 3
   # Vor Veröffentlichung ändern. Das gleiche Secret muss in der Mod gesetzt sein.
   shared-secret: "v1:cc676936b24d497a981d4bb69183df44"
 combat:
@@ -27,7 +27,7 @@ playtime:
   bossbar-default: false
 border:
   enabled: true
-  # Fester Name der einzigen zugelassenen Serverwelt. Nicht ändern.
+  # Fester Name der zusätzlichen Projektwelt. Die normale Serverwelt darf anders heißen.
   world: rival_main
   axis: X
   split-coordinate: 0.0

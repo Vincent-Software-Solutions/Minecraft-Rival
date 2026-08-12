@@ -33,7 +33,11 @@ dependencies {
     minecraft "net.neoforged:forge:${rootProject.minecraft_version}-${rootProject.neoforge_client_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     proguard 'com.guardsquare:proguard-base:7.9.1'
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
+
+test { useJUnitPlatform() }
 
 mixin {
     add sourceSets.main, 'minecraft_rival.refmap.json'

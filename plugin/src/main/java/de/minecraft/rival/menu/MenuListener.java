@@ -31,7 +31,7 @@ public final class MenuListener implements Listener {
     public void openHelp(Player player) {
         Inventory menu = createMenu("help", 45, "Minecraft Rival • Spielerhilfe", ChatColor.AQUA);
         menu.setItem(10, helpItem(Material.COMPASS, "Start & Warteraum",
-            "Einzige Projektwelt: rival_main.", "Vor dem Start zeigt die Bossbar den Countdown.",
+            "Projektwelt: rival_main.", "Vor dem Start zeigt die Bossbar den Countdown.",
             "Ohne Seitenzuweisung bleibst du geschützt", "im festgelegten Warteraum."));
         menu.setItem(11, helpItem(Material.REDSTONE, "Projekt-Herzen & Combat",
             "Du startest mit 3 Projekt-Herzen.", "Die Grafik sitzt mittig direkt über der Hotbar.", "Spielerschaden markiert beide 30 Sekunden.", "Nur ein Tod im Combat kostet ein Herz."));

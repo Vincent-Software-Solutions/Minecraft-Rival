@@ -43,9 +43,9 @@ public final class RivalPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        mainWorld = RivalWorld.loadExisting(this);
+        mainWorld = RivalWorld.loadProjectWorld(this);
         if (mainWorld == null) {
-            getLogger().severe("Minecraft Rival wird deaktiviert, damit niemals auf einer falschen Welt gespielt wird.");
+            getLogger().severe("Minecraft Rival wird deaktiviert, weil die zusätzliche Projektwelt nicht bereit ist.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
