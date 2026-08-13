@@ -63,7 +63,7 @@ public final class RivalTitleScreen extends Screen {
         graphics.drawCenteredString(font, "RIVAL PROJECT CLIENT", width / 2, panelTop + 10, 0xFFF4F7FB);
 
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawCenteredString(font, "Minecraft Rival 1.0 • by pluginsmc.com",
+        graphics.drawCenteredString(font, "Minecraft Rival 2.0 • by pluginsmc.com",
             width / 2, height - 13, 0xFF9AA8BA);
     }
 
