@@ -22,6 +22,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.io.*;
 import java.time.Duration;
@@ -57,21 +60,26 @@ public final class GraveManager implements Listener {
     }
 
     private void create(Player owner, Location source, List<ItemStack> items, long createdAt) {
-        if (!plugin.isMainWorld(source.getWorld())) source = plugin.mainWorld().getSpawnLocation();
-        World world = plugin.mainWorld();
+        World world = source.getWorld();
+        if (world == null) {
+            world = plugin.mainWorld();
+            source = world.getSpawnLocation();
+        }
+        final World graveWorld = world;
         Location location = safeGraveLocation(source);
         UUID id = UUID.randomUUID();
         GraveInventory holder = new GraveInventory(id);
         Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + owner.getName());
         holder.inventory = inventory;
-        for (ItemStack item : items) inventory.addItem(item).values().forEach(left -> world.dropItemNaturally(location, left));
+        for (ItemStack item : items) inventory.addItem(item).values().forEach(left -> graveWorld.dropItemNaturally(location, left));
 
-        ArmorStand stand = world.spawn(location, ArmorStand.class, armor -> {
+        ArmorStand stand = graveWorld.spawn(location, ArmorStand.class, armor -> {
             armor.setInvisible(true);
             armor.setInvulnerable(true);
             armor.setGravity(false);
             armor.setSmall(true);
             armor.setBasePlate(false);
+            armor.setGlowing(true);
             armor.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
             PlayerProfile profile = Bukkit.createPlayerProfile(owner.getUniqueId(), owner.getName());
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -80,15 +88,13 @@ public final class GraveManager implements Listener {
             head.setItemMeta(meta);
             armor.getEquipment().setHelmet(head);
         });
-        TextDisplay text = world.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
-            display.setText(ChatColor.AQUA + "Grab von " + owner.getName());
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setSeeThrough(true);
-            display.setInvulnerable(true);
-            display.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
+        TextDisplay text = graveWorld.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
+            configureHologram(display, "Grab von " + owner.getName(), id);
         });
         graves.put(id, new Grave(id, owner.getUniqueId(), owner.getName(), location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId()));
         save();
+        plugin.getLogger().info("Grab für " + owner.getName() + " erstellt bei " + graveWorld.getName() + " "
+            + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ() + " (" + items.size() + " Stapel).");
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -140,7 +146,7 @@ public final class GraveManager implements Listener {
     }
 
     private Location safeGraveLocation(Location source) {
-        World world = plugin.mainWorld();
+        World world = Objects.requireNonNullElse(source.getWorld(), plugin.mainWorld());
         int x = source.getBlockX();
         int z = source.getBlockZ();
         if (source.getY() < world.getMinHeight() || source.getY() >= world.getMaxHeight() - 1)
@@ -244,7 +250,12 @@ public final class GraveManager implements Listener {
         for (String key : root.getKeys(false)) try {
             UUID id = UUID.fromString(key);
             String path = "graves." + key + ".";
-            World world = plugin.mainWorld();
+            String worldName = yaml.getString(path + "world", plugin.mainWorld().getName());
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                plugin.getLogger().warning("Grabwelt '" + worldName + "' ist nicht geladen; Grab " + key + " wird später erneut versucht.");
+                continue;
+            }
             Location location = safeGraveLocation(new Location(world, yaml.getDouble(path + "x"), yaml.getDouble(path + "y"), yaml.getDouble(path + "z")));
             UUID owner = UUID.fromString(Objects.requireNonNull(yaml.getString(path + "owner")));
             String ownerName = yaml.getString(path + "owner-name", "Unbekannt");
@@ -266,7 +277,7 @@ public final class GraveManager implements Listener {
         holder.inventory = inventory;
         items.stream().filter(Objects::nonNull).forEach(item -> inventory.addItem(item).values().forEach(left -> world.dropItemNaturally(location, left)));
         ArmorStand stand = world.spawn(location, ArmorStand.class, armor -> {
-            armor.setInvisible(true); armor.setInvulnerable(true); armor.setGravity(false); armor.setSmall(true); armor.setBasePlate(false);
+            armor.setInvisible(true); armor.setInvulnerable(true); armor.setGravity(false); armor.setSmall(true); armor.setBasePlate(false); armor.setGlowing(true);
             armor.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             var meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
@@ -274,11 +285,25 @@ public final class GraveManager implements Listener {
             head.setItemMeta(meta); armor.getEquipment().setHelmet(head);
         });
         TextDisplay text = world.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
-            display.setText(ChatColor.AQUA + "Grab von " + ownerName);
-            display.setBillboard(Display.Billboard.CENTER); display.setSeeThrough(true); display.setInvulnerable(true);
-            display.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
+            configureHologram(display, "Grab von " + ownerName, id);
         });
         graves.put(id, new Grave(id, owner, ownerName, location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId()));
+    }
+
+    private void configureHologram(TextDisplay display, String label, UUID id) {
+        display.setText(ChatColor.AQUA + label);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setSeeThrough(true);
+        display.setShadowed(true);
+        display.setLineWidth(160);
+        // Mohist 1.20.1 liefert für Displays teils eine übergroße
+        // Standardtransformation. Eine explizite Skalierung hält das
+        // Hologramm auf allen getesteten Clients auf normaler Nametag-Größe.
+        display.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(),
+            new Vector3f(0.04f, 0.04f, 0.04f), new AxisAngle4f()));
+        display.setBackgroundColor(org.bukkit.Color.fromARGB(120, 8, 8, 8));
+        display.setInvulnerable(true);
+        display.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
     }
 
     public synchronized void save() {

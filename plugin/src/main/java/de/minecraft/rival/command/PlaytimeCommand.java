@@ -19,6 +19,7 @@ public final class PlaytimeCommand implements CommandExecutor {
         var record = playtime.current(player);
         player.sendMessage(Messages.value("Heute gespielt: ", playtime.formattedPlayed(record), ""));
         player.sendMessage(Messages.value("Verbleibende tägliche Spielzeit: ", playtime.formatted(record), ""));
+        player.sendMessage(Messages.value("Tracking: ", playtime.status(player), ""));
         return true;
     }
 }

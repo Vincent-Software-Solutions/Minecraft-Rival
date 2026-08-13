@@ -38,6 +38,7 @@ public final class RivalPlugin extends JavaPlugin {
     private ProjectManager projects;
     private ZoneManager zones;
     private MenuListener menus;
+    private SetupToolManager setupTools;
     private World mainWorld;
 
     @Override
@@ -71,9 +72,10 @@ public final class RivalPlugin extends JavaPlugin {
         combat = new CombatManager(this, data, graves, endFight);
         modGate = new ModGate(this, data, combat);
         menus = new MenuListener(this);
+        setupTools = new SetupToolManager(this);
         youtube = new YouTubeManager(this);
 
-        register(moderation, adminMode, vanish, graves, projects, zones, borders, playtime, combat, endFight, modGate, youtube, menus, new PresentationListener(this));
+        register(moderation, adminMode, vanish, graves, projects, zones, borders, playtime, combat, endFight, modGate, youtube, menus, setupTools, new PresentationListener(this));
         command("help", new HelpCommand(this));
         command("spielzeit", new PlaytimeCommand(playtime));
         ClanCommand clanCommand = new ClanCommand(clans);
@@ -155,6 +157,7 @@ public final class RivalPlugin extends JavaPlugin {
     public ProjectManager projects() { return projects; }
     public ZoneManager zones() { return zones; }
     public MenuListener menus() { return menus; }
+    public SetupToolManager setupTools() { return setupTools; }
     public World mainWorld() { return mainWorld; }
     public boolean isMainWorld(World world) { return world != null && world.equals(mainWorld); }
 }

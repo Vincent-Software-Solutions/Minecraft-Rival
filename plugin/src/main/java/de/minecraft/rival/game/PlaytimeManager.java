@@ -27,6 +27,7 @@ public final class PlaytimeManager implements Listener {
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private final Map<UUID, Long> previousRemaining = new HashMap<>();
     private final Map<UUID, Long> adminActivationGrace = new HashMap<>();
+    private final Map<UUID, Long> accountingMillis = new HashMap<>();
     private int secondsSinceSave;
 
     public PlaytimeManager(RivalPlugin plugin, DataStore data, VanishManager vanish) {
@@ -44,6 +45,7 @@ public final class PlaytimeManager implements Listener {
         PlayerRecord record = current(event.getPlayer());
         long remaining = remaining(record);
         previousRemaining.put(event.getPlayer().getUniqueId(), remaining);
+        accountingMillis.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
         if (remaining <= 0 && event.getPlayer().hasPermission("rival.admin")) {
             adminActivationGrace.put(event.getPlayer().getUniqueId(), System.currentTimeMillis() + 30_000L);
             Messages.normal(event.getPlayer(), "Deine Spielzeit ist abgelaufen. Aktiviere innerhalb von 30 Sekunden /admin mode.");
@@ -57,31 +59,48 @@ public final class PlaytimeManager implements Listener {
         hideBar(event.getPlayer());
         previousRemaining.remove(event.getPlayer().getUniqueId());
         adminActivationGrace.remove(event.getPlayer().getUniqueId());
+        accountingMillis.remove(event.getPlayer().getUniqueId());
         data.save();
     }
 
     private void tick() {
+        long now = System.currentTimeMillis();
+        secondsSinceSave++;
         if (!plugin.getConfig().getBoolean("playtime.enabled", true)) {
-            for (Player player : Bukkit.getOnlinePlayers()) updateBar(player);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                accountingMillis.put(player.getUniqueId(), now);
+                updateBar(player);
+                plugin.modGate().sendState(player);
+            }
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (plugin.adminMode().isActive(player) || vanish.isVanished(player)) continue;
-            if (!plugin.projects().isParticipant(player)) continue;
-            if (adminActivationGrace.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) continue;
+            UUID id = player.getUniqueId();
+            long anchor = accountingMillis.getOrDefault(id, now);
+            if (!isTracking(player) || adminActivationGrace.getOrDefault(id, 0L) > now) {
+                accountingMillis.put(id, now);
+                previousRemaining.put(id, remaining(current(player)));
+                updateBar(player);
+                plugin.modGate().sendState(player);
+                continue;
+            }
             PlayerRecord record = current(player);
-            long before = previousRemaining.getOrDefault(player.getUniqueId(), remaining(record));
-            record.playedSeconds(record.playedSeconds() + 1);
+            long elapsed = Math.max(0L, (now - anchor) / 1000L);
+            if (elapsed == 0L) continue;
+            accountingMillis.put(id, anchor + elapsed * 1000L);
+            long before = previousRemaining.getOrDefault(id, remaining(record));
+            record.playedSeconds(record.playedSeconds() + elapsed);
             long after = remaining(record);
-            previousRemaining.put(player.getUniqueId(), after);
+            previousRemaining.put(id, after);
             for (long warning : WARNINGS) if (de.minecraft.rival.util.RivalRules.warningCrossed(before, after, warning)) warn(player, warning);
             updateBar(player);
+            plugin.modGate().sendState(player);
             if (after <= 0) {
                 data.save();
                 player.kickPlayer(plugin.getConfig().getString("messages.playtime-expired"));
             }
         }
-        if (++secondsSinceSave >= 60) {
+        if (secondsSinceSave >= 60) {
             secondsSinceSave = 0;
             data.save();
         }
@@ -136,6 +155,24 @@ public final class PlaytimeManager implements Listener {
         data.save();
     }
 
+    public boolean isTracking(Player player) {
+        return plugin.getConfig().getBoolean("playtime.enabled", true)
+            && !plugin.adminMode().isActive(player)
+            && !vanish.isVanished(player)
+            && plugin.projects().isParticipant(player);
+    }
+
+    public String status(Player player) {
+        if (!plugin.getConfig().getBoolean("playtime.enabled", true)) return "pausiert – global deaktiviert";
+        if (plugin.adminMode().isActive(player)) return "pausiert – Admin-Modus";
+        if (vanish.isVanished(player)) return "pausiert – Vanish";
+        if (!plugin.projects().isStarted()) return "pausiert – Projekt noch nicht gestartet";
+        PlayerRecord record = current(player);
+        if (record.eliminated()) return "pausiert – ausgeschieden";
+        if (record.side() == 0) return "pausiert – noch keiner Seite zugewiesen";
+        return "läuft";
+    }
+
     public void refreshVisibility(Player player) {
         PlayerRecord record = current(player);
         boolean wanted = record.bossbarSet() ? record.bossbar() : plugin.getConfig().getBoolean("playtime.bossbar-default");
@@ -163,7 +200,9 @@ public final class PlaytimeManager implements Listener {
             return;
         }
         long remaining = remaining(current(player));
-        bar.setTitle(ChatColor.AQUA + "Spielzeit: " + formatted(player));
+        PlayerRecord record = current(player);
+        bar.setTitle(ChatColor.AQUA + "Gespielt: " + formattedPlayed(record)
+            + ChatColor.DARK_GRAY + " • " + ChatColor.AQUA + "Übrig: " + formatted(record));
         bar.setProgress(Math.max(0, Math.min(1, remaining / (double) Math.max(1, totalSeconds()))));
         bar.setColor(remaining <= 300 ? BarColor.RED : remaining <= 900 ? BarColor.YELLOW : BarColor.BLUE);
     }

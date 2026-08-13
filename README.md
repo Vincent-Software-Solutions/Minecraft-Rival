@@ -63,6 +63,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 ### Spielzeit
 
 - `/spielzeit` zeigt die heute bereits gespielte und die verbleibende Tageszeit; `/spielzeit anzeige` schaltet die Live-Bossbar um.
+- Die Spielzeit zählt nur während eines gestarteten Projekts für zugewiesene, aktive Teilnehmer. `/spielzeit` zeigt zusätzlich, ob der Timer läuft oder warum er pausiert ist; F3 zeigt gespielt und übrig.
 - Warnungen erscheinen bei 30/15/5/3/1 Minuten und 30/10/5/4/3/2/1 Sekunden.
 - Nach Ablauf verhindert das Plugin weitere Logins bis zum nächsten Kalendertag in der konfigurierten Zeitzone.
 - Im Warteraum wird nicht gezählt. Im Admin-Modus und Vanish wird ebenfalls nicht gezählt. Die Funktion kann vollständig deaktiviert werden.
@@ -139,6 +140,8 @@ Alle Adminfunktionen benötigen `rival.admin`. Ein berechtigter Spieler agiert t
 | Border | `/admin border <on|off|toggle>` |
 | Finale | `/admin endfight <status|start|stop>`; Status listet verbleibende Spieler und Herzen |
 | Erzfeind | `/admin erzfeind` |
+
+`/admin` öffnet immer das Spielleitungs-Dashboard. Dort wird der Admin-Modus direkt aktiviert, anschließend führen die Level durch Karte einrichten, Spieler/Seiten, Projektstart und Erzfeind-Reveal. Unter „Karte einrichten“ erhält man einen Setup-Stick: Rechtsklick setzt den gewählten Punkt, Linksklick wechselt zum nächsten Modus. Warteraum, beide vertikal unendlichen Inselzonen, X-/Z-Trennlinie, Seitenspawns und Finalmitte lassen sich damit ohne Koordinatenbefehle konfigurieren.
 | Spieler | `/admin player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]` |
 | Gräber | `/admin graves <count|deleteall|near|player> [Radius/Spieler]` |
 | Clans | `/admin clan <create|add|remove|owner|color|tag|info|disband> ...` |

@@ -38,14 +38,15 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        if (args.length == 0 && sender instanceof Player player) {
+            plugin.menus().openAdmin(player);
+            return true;
+        }
         if (sender instanceof Player player && !plugin.adminMode().isActive(player)) {
             Messages.error(sender, "Aktiviere zuerst den Admin-Modus mit /admin mode.");
             return true;
         }
-        if (args.length == 0) {
-            if (sender instanceof Player player) plugin.menus().openAdmin(player); else help(sender);
-            return true;
-        }
+        if (args.length == 0) { help(sender); return true; }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> help(sender);
             case "vanish" -> { if (sender instanceof Player player) plugin.vanish().toggle(player); else Messages.error(sender, "Nur im Spiel verfügbar."); }
@@ -69,6 +70,10 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "warnings" -> warnings(sender, args);
             case "players" -> players(sender, args);
             case "playtime" -> playtime(sender, args);
+            case "setup" -> {
+                if (!(sender instanceof Player player)) Messages.error(sender, "Nur im Spiel verfügbar.");
+                else plugin.menus().openSetup(player);
+            }
             default -> help(sender);
         }
         return true;
@@ -446,7 +451,8 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private void help(CommandSender sender) {
         Messages.normal(sender, "Admin-Modus • /admin mode • GUI: /admin • vanish • reload");
-        Messages.normal(sender, "Projektwelt rival_main • project <start|stop|schedule> • setlocation waiting • spawn <negative|positive> <add|clear>");
+        Messages.normal(sender, "Dashboard • /admin • setup öffnet die Einrichtung mit Setup-Stick");
+        Messages.normal(sender, "Projekt • project <start|stop|schedule> • setlocation waiting • spawn <negative|positive> <add|clear>");
         Messages.normal(sender, "Inseln • zone <nether|end> <pos1|pos2|clear|info> • mobrate <nether|end|overworld> <0-100>");
         Messages.normal(sender, "Spiel • border <on|off|toggle> • endfight <status|start|stop> • erzfeind");
         Messages.normal(sender, "Spieler • player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]");
@@ -494,6 +500,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "endfight" -> filter(List.of("status", "start", "stop"), args[1]);
             case "project" -> filter(List.of("start", "stop", "schedule"), args[1]);
             case "setlocation" -> filter(List.of("waiting"), args[1]);
+            case "setup" -> List.of();
             case "spawn" -> filter(List.of("negative", "positive"), args[1]);
             case "zone" -> filter(List.of("nether", "end"), args[1]);
             case "mobrate" -> filter(List.of("nether", "end", "overworld"), args[1]);
