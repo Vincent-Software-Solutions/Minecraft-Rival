@@ -181,7 +181,7 @@ public final class PlaytimeManager implements Listener {
 
     private void showBar(Player player, boolean show) {
         if (!show) { hideBar(player); return; }
-        BossBar bar = bars.computeIfAbsent(player.getUniqueId(), ignored -> Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID));
+        BossBar bar = bars.computeIfAbsent(player.getUniqueId(), ignored -> Bukkit.createBossBar("", BarColor.YELLOW, BarStyle.SOLID));
         if (!bar.getPlayers().contains(player)) bar.addPlayer(player);
         updateBar(player);
     }
@@ -195,16 +195,16 @@ public final class PlaytimeManager implements Listener {
         BossBar bar = bars.get(player.getUniqueId());
         if (bar == null) return;
         if (!plugin.getConfig().getBoolean("playtime.enabled", true)) {
-            bar.setTitle(ChatColor.GRAY + "Tägliche Spielzeit: deaktiviert");
+            bar.setTitle(Messages.prefix() + ChatColor.GRAY + "deaktiviert");
             bar.setProgress(1);
             return;
         }
         long remaining = remaining(current(player));
-        PlayerRecord record = current(player);
-        bar.setTitle(ChatColor.AQUA + "Gespielt: " + formattedPlayed(record)
-            + ChatColor.DARK_GRAY + " • " + ChatColor.AQUA + "Übrig: " + formatted(record));
+        bar.setTitle(Messages.prefix() + ChatColor.GOLD + de.minecraft.rival.util.RivalRules.formatDuration(remaining));
         bar.setProgress(Math.max(0, Math.min(1, remaining / (double) Math.max(1, totalSeconds()))));
-        bar.setColor(remaining <= 300 ? BarColor.RED : remaining <= 900 ? BarColor.YELLOW : BarColor.BLUE);
+        // Bukkit 1.20.1 besitzt keine eigene ORANGE-Bossbar. YELLOW ist die
+        // vanilla-nächste orange/goldene Bossbarfarbe; der Text selbst ist GOLD.
+        bar.setColor(BarColor.YELLOW);
     }
 
     public long totalSeconds() { return Math.max(0, plugin.getConfig().getLong("playtime.daily-minutes", 180)) * 60L; }

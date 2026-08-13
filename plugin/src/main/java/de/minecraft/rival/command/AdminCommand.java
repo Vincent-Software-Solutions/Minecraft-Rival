@@ -24,7 +24,12 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
-        if (!sender.hasPermission("rival.admin")) { Messages.error(sender, "Dafür fehlt dir rival.admin."); return true; }
+        // Nur Spieler benötigen Permission + aktivierten Modus. Die Serverkonsole
+        // ist definitionsgemäß immer die Spielleitung und kann alles sofort nutzen.
+        if (sender instanceof Player && !sender.hasPermission("rival.admin")) {
+            Messages.error(sender, "Dafür fehlt dir rival.admin.");
+            return true;
+        }
         if (args.length > 0 && args[0].equalsIgnoreCase("mode")) {
             if (sender instanceof Player player) plugin.adminMode().toggle(player);
             else Messages.error(sender, "Die Konsole benötigt keinen Admin-Modus.");
@@ -33,11 +38,13 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         if (args.length > 0 && args[0].equalsIgnoreCase("broadcast")) {
             if (args.length < 2) { Messages.error(sender, "/admin broadcast <Nachricht> (für Zeilenumbruch: \\n)"); return true; }
             String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-            if (sender instanceof Player player && !plugin.adminMode().isActive(player)) plugin.broadcasts().queue(player, message);
-            else {
-                plugin.broadcasts().broadcastNow(message);
-                Messages.normal(sender, "Admin-Broadcast gesendet.");
+            if (sender instanceof Player player && !plugin.adminMode().isActive(player)) {
+                Messages.error(sender, "Aktiviere zuerst den Admin-Modus mit /admin mode.");
+                return true;
             }
+            // Die Konsole besitzt implizit immer den Admin-Modus.
+            plugin.broadcasts().broadcastNow(message);
+            Messages.normal(sender, "Admin-Broadcast gesendet.");
             return true;
         }
         if (args.length == 0 && sender instanceof Player player) {
@@ -84,11 +91,10 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
     }
 
     private void worldMap(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) { Messages.error(sender, "Die Weltkarte kann nur im Spiel aktualisiert werden."); return; }
         if (args.length < 2 || !args[1].equalsIgnoreCase("update")) {
             Messages.error(sender, "/admin worldmap update"); return;
         }
-        plugin.worldMap().update(player);
+        plugin.worldMap().update(sender);
     }
 
     private void blacklist(CommandSender sender, String[] args) {
@@ -532,8 +538,9 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String @NotNull [] args) {
-        if (!sender.hasPermission("rival.admin")) return List.of();
-        if (sender instanceof Player player && !plugin.adminMode().isActive(player)) return args.length == 1 ? filter(List.of("mode", "broadcast"), args[0]) : List.of();
+        if (sender instanceof Player && !sender.hasPermission("rival.admin")) return List.of();
+        if (sender instanceof Player player && !plugin.adminMode().isActive(player))
+            return args.length == 1 ? filter(List.of("mode"), args[0]) : List.of();
         if (args.length == 1) return filter(List.of("mode", "help", "vanish", "reload", "broadcast", "rules", "ban", "unban", "warn", "warnings", "players", "playtime", "worldmap", "blacklist", "border", "endfight", "erzfeind", "project", "setlocation", "spawn", "zone", "mobrate", "graves", "config", "player", "clan"), args[0]);
         if (args.length == 2) return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "border" -> filter(List.of("on", "off", "toggle"), args[1]);

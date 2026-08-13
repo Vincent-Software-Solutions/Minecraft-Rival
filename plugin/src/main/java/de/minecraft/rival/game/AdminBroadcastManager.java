@@ -26,12 +26,6 @@ public final class AdminBroadcastManager {
         for (String line : normalized.split("\n", -1)) Messages.broadcast(Messages.styledLine(line));
     }
 
-    public void queue(Player admin, String message) {
-        queued.computeIfAbsent(admin.getUniqueId(), ignored -> new ArrayList<>()).add(message);
-        save();
-        Messages.normal(admin, "Admin-Broadcast gespeichert. Er wird beim Aktivieren des Admin-Modus gesendet.");
-    }
-
     public int flush(Player admin) {
         List<String> messages = queued.remove(admin.getUniqueId());
         if (messages == null || messages.isEmpty()) return 0;

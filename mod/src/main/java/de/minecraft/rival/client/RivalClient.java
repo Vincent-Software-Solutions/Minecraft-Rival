@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.IconSet;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import de.minecraft.rival.RivalMod;
-import de.minecraft.rival.client.mixin.GuiAccessor;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
@@ -19,7 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -95,7 +94,6 @@ public final class RivalClient {
     private static boolean f3Held;
     private static boolean iconInstalled;
     private static boolean registrationPending;
-    private static volatile long chatVisibleUntil;
 
     private final EventNetworkChannel authChannel;
 
@@ -205,6 +203,13 @@ public final class RivalClient {
 
     @SubscribeEvent
     public void onScreenRender(ScreenEvent.Render.Pre event) {
+        if (event.getScreen() instanceof net.minecraft.client.gui.screens.PauseScreen) {
+            RivalScreenStyle.renderPauseOverlay(event.getScreen(), event.getGuiGraphics());
+            event.getScreen().renderables.forEach(renderable -> renderable.render(event.getGuiGraphics(),
+                event.getMouseX(), event.getMouseY(), event.getPartialTick()));
+            event.setCanceled(true);
+            return;
+        }
         if (!RivalScreenStyle.applies(event.getScreen())) return;
         RivalScreenStyle.renderBackground(event.getScreen(), event.getGuiGraphics());
         event.getScreen().renderables.stream()
@@ -222,6 +227,8 @@ public final class RivalClient {
     @SubscribeEvent
     public void onScreenRendered(ScreenEvent.Render.Post event) {
         RivalScreenStyle.renderCornerBranding(event.getScreen(), event.getGuiGraphics());
+        if (RivalScreenStyle.isModernVanillaMenu(event.getScreen()))
+            RivalScreenStyle.renderModernTransition(event.getScreen(), event.getGuiGraphics());
     }
 
     @SubscribeEvent
@@ -229,10 +236,11 @@ public final class RivalClient {
         renderHud(event.getGuiGraphics());
     }
 
-    /** Uses Forge's stable client event instead of a startup-critical chat mixin. */
     @SubscribeEvent
-    public void onChatReceived(ClientChatReceivedEvent event) {
-        noteChatMessage();
+    public void onChatPosition(CustomizeGuiOverlayEvent.Chat event) {
+        // Chat bleibt links, beginnt aber höher. Der mittige Rival-HUD-Block
+        // kann dadurch fest an derselben Stelle bleiben, ohne überdeckt zu werden.
+        if (authorized) event.setPosY(event.getPosY() - 34);
     }
 
     private void receiveChallenge(byte[] raw) {
@@ -294,7 +302,7 @@ public final class RivalClient {
             playtimeEnabled = nextPlaytimeEnabled;
             playtimeSeconds = nextPlaytime;
             playedSeconds = nextPlayed;
-            clanName = nextClan;
+            clanName = legacyColors(nextClan);
         } catch (IOException ignored) {
         }
     }
@@ -397,15 +405,10 @@ public final class RivalClient {
         // Das komplette Herzbild sitzt mit Abstand oberhalb davon und überdeckt
         // weder XP-Leiste noch Hotbar.
         int xpBarTop = graphics.guiHeight() - 32;
-        // Actionbar-Nachrichten liegen im Vanilla-HUD genau in diesem Bereich.
-        // Solange eine eingeblendet ist, wandert der gesamte Rival-Block nach
-        // oben und kehrt danach automatisch direkt über die XP-Leiste zurück.
-        GuiAccessor gui = (GuiAccessor) client.gui;
-        boolean actionbarVisible = gui.rival$getOverlayMessageTime() > 0;
-        boolean chatVisible = client.screen instanceof net.minecraft.client.gui.screens.ChatScreen
-            || System.currentTimeMillis() < chatVisibleUntil;
-        int messageOffset = chatVisible ? 34 : actionbarVisible ? 27 : 0;
-        int heartY = xpBarTop - renderHeight - 5 - messageOffset;
+        // Immer dieselbe Position ab dem allerersten Frame. Früh eintreffende
+        // Join-/Chat-/Actionbar-Nachrichten dürfen den Block nicht mehr erst
+        // nach einigen Sekunden nach unten wandern lassen.
+        int heartY = xpBarTop - renderHeight - 5;
         if (heartCount > 0) {
             graphics.blit(HEART_TEXTURES[heartCount], center - renderWidth / 2, heartY,
                 renderWidth, renderHeight, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
@@ -455,8 +458,17 @@ public final class RivalClient {
         graphics.pose().popPose();
     }
 
-    public static void noteChatMessage() {
-        chatVisibleUntil = System.currentTimeMillis() + 10_500L;
+    private static String legacyColors(String text) {
+        if (text == null || text.isEmpty()) return "";
+        StringBuilder result = new StringBuilder(text.length());
+        for (int index = 0; index < text.length(); index++) {
+            char current = text.charAt(index);
+            if (current == '&' && index + 1 < text.length()
+                && "0123456789abcdefklmnor".indexOf(Character.toLowerCase(text.charAt(index + 1))) >= 0) {
+                result.append('§').append(Character.toLowerCase(text.charAt(++index)));
+            } else result.append(current);
+        }
+        return result.toString();
     }
 
     private static void renderLowHealthVignette(GuiGraphics graphics, float effectiveHealth) {

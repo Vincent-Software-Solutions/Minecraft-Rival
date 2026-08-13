@@ -62,7 +62,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 
 ### Spielzeit
 
-- `/spielzeit` zeigt die heute bereits gespielte und die verbleibende Tageszeit; `/spielzeit anzeige` schaltet die Live-Bossbar um.
+- `/spielzeit` zeigt die heute bereits gespielte und die verbleibende Tageszeit; `/spielzeit anzeige` schaltet eine orange/goldene Live-Bossbar mit Rival-Prefix und schlichtem Restzeit-Countdown um. Der Unterbefehl besitzt Tab-Vervollständigung.
 - Die Spielzeit zählt nur während eines gestarteten Projekts für zugewiesene, aktive Teilnehmer. `/spielzeit` zeigt zusätzlich, ob der Timer läuft oder warum er pausiert ist; F3 zeigt gespielt und übrig.
 - Warnungen erscheinen bei 30/15/5/3/1 Minuten und 30/10/5/4/3/2/1 Sekunden.
 - Nach Ablauf verhindert das Plugin weitere Logins bis zum nächsten Kalendertag in der konfigurierten Zeitzone.
@@ -94,7 +94,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 
 - Die mitgelieferte Projektkarte öffnet sich standardmäßig mit `J`. Die Belegung ist unter Optionen → Steuerung → Minecraft Rival frei änderbar.
 - Das Mausrad zoomt weich; mit gedrückter linker Maustaste lässt sich die Karte verschieben. `R` setzt Zoom und Position zurück.
-- Die Übersicht wird serverseitig aus den generierten Chunks der echten Projektwelt erzeugt. Sie bleibt eingefroren, bis ein Admin `/admin worldmap update` oder den Update-Knopf im Setup-GUI verwendet; die aktuelle Spielerposition wird auf dem Snapshot markiert.
+- Die Übersicht wird serverseitig aus allen vorhandenen Regionen der echten Projektwelt erzeugt – ohne das frühere Bild als Kartenersatz. Sie bleibt vollständig eingefroren, bis ein Admin `/admin worldmap update` oder den Update-Knopf im Setup-GUI verwendet; die aktuelle Spielerposition wird auf dem Snapshot markiert.
 - Bekannte X-Ray-/Cheat-Mods und entsprechend benannte Ressourcenpakete werden beim Beitritt abgewiesen. Zusätzlich rendert die Mod vollständig verdeckte Erze nicht, sodass transparente X-Ray-Texturen sie nicht sichtbar machen.
 - Die natürliche Spawnrate ist für `nether`, `end` und `overworld` separat zwischen 0 und 100 Prozent einstellbar. 100 Prozent entspricht der normalen biomabhängigen Rate.
 - Villager und Wandering Trader spawnen nicht. Vorhandene werden entfernt, Transformationen zu Villagern und alle Merchant-Handelsfenster werden blockiert.

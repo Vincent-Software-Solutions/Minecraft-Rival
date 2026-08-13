@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -93,6 +94,25 @@ public final class ZoneManager implements Listener {
             projectile.getPersistentDataContainer().set(projectileOriginKey, PersistentDataType.STRING, origin(living).name());
             projectile.getPersistentDataContainer().set(projectileSideKey, PersistentDataType.INTEGER, originSide(living));
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMobExplosion(EntityExplodeEvent event) {
+        if (!isMainWorld(event.getLocation().getWorld()) || zoneAt(event.getLocation()) != Zone.NETHER) return;
+        Entity source = event.getEntity();
+        boolean mobCaused = source instanceof Mob;
+        if (source instanceof Projectile projectile) mobCaused = projectile.getShooter() instanceof Mob;
+        if (!mobCaused) return;
+        // Spieler-/Entity-Schaden bleibt vanilla; Ghasts, Creeper und andere Mobs
+        // können die gebaute Nether-Insel jedoch nicht mehr zerstören.
+        event.blockList().clear();
+        event.setYield(0.0f);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMobIgnite(BlockIgniteEvent event) {
+        if (!isMainWorld(event.getBlock().getWorld()) || zoneAt(event.getBlock().getLocation()) != Zone.NETHER) return;
+        if (event.getCause() == BlockIgniteEvent.IgniteCause.FIREBALL) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
