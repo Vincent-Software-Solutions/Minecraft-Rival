@@ -1,6 +1,6 @@
 allprojects {
     group = 'de.minecraft.rival'
-    version = '1.0'
+    version = '2.0'
 
     repositories {
         maven { url = 'https://maven.neoforged.net/releases' }

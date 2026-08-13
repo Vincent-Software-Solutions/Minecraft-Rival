@@ -17,9 +17,9 @@ Minecraft Rival besteht aus zwei Teilen für **Minecraft Java 1.20.1**:
 
 Danach entstehen:
 
-- `plugin/build/libs/RivalPlugins-1.0.jar`
-- `mod/build/libs/RivalMod-1.0.jar` (obfuskiert; an Spieler verteilen)
-- `mod/build/libs/RivalMod-unobfuscated-1.0.jar` (nur für Entwicklung)
+- `plugin/build/libs/RivalPlugins-2.0.jar`
+- `mod/build/libs/RivalMod-2.0.jar` (obfuskiert; an Spieler verteilen)
+- `mod/build/libs/RivalMod-unobfuscated-2.0.jar` (nur für Entwicklung)
 
 Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteilt werden.
 
@@ -37,7 +37,7 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 10. Spieler mit `/admin player side <Spieler> <-1|1>` zuweisen. Mit Wert `0` wird eine Zuweisung wieder entfernt.
 11. Optional `/admin project schedule 2026-08-11T20:00:00` setzen oder mit `/admin project start` manuell starten.
 
-> **Wichtig:** Für die Spiellogik wird serverseitig nur `RivalPlugins-1.0.jar` benötigt. Auf Mohist darf die aktuelle `RivalMod-1.0.jar` zusätzlich im Serverordner `mods/` bleiben; ihr Dist-Schutz verhindert dort das Laden von Minecraft-Clientklassen. Auf jedem Spieler-Client muss die Mod weiterhin installiert sein.
+> **Wichtig:** Für die Spiellogik wird serverseitig nur `RivalPlugins-2.0.jar` benötigt. Auf Mohist darf die aktuelle `RivalMod-2.0.jar` zusätzlich im Serverordner `mods/` bleiben; ihr Dist-Schutz verhindert dort das Laden von Minecraft-Clientklassen. Auf jedem Spieler-Client muss die Mod weiterhin installiert sein.
 
 Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor einer echten Veröffentlichung sollte es sowohl in `config.yml` als auch in `RivalClient.secret()` geändert und die Mod danach neu gebaut werden. Ein Secret in einer Clientmod kann trotz Obfuskation grundsätzlich extrahiert werden. Die Lösung erschwert Manipulation durch ProGuard und Challenge/HMAC mit zufälliger Nonce, kann aber keine mathematisch perfekte Geheimhaltung auf einem fremden Client garantieren.
 
