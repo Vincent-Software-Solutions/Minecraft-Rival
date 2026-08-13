@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -205,6 +206,12 @@ public final class RivalClient {
     @SubscribeEvent
     public void onHudRender(RenderGuiEvent.Post event) {
         renderHud(event.getGuiGraphics());
+    }
+
+    /** Uses Forge's stable client event instead of a startup-critical chat mixin. */
+    @SubscribeEvent
+    public void onChatReceived(ClientChatReceivedEvent event) {
+        noteChatMessage();
     }
 
     private void receiveChallenge(byte[] raw) {

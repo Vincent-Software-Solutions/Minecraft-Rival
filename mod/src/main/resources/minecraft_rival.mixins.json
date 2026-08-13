@@ -6,7 +6,6 @@
   "refmap": "minecraft_rival.refmap.json",
   "client": [
     "AntiXrayMixin",
-    "ChatComponentMixin",
     "GameRendererMixin",
     "GuiAccessor"
   ],
