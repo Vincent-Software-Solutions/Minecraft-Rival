@@ -8,6 +8,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -33,7 +34,7 @@ public final class VanishManager implements Listener {
     public boolean isVanished(Player player) { return vanished.contains(player.getUniqueId()); }
 
     public void toggle(Player player) {
-        if (isVanished(player)) leave(player, true);
+        if (isVanished(player)) leave(player, true, true);
         else enter(player);
     }
 
@@ -56,14 +57,19 @@ public final class VanishManager implements Listener {
         player.setInvulnerable(true);
         player.setCollidable(false);
         vanished.add(player.getUniqueId());
-        for (Player other : Bukkit.getOnlinePlayers()) if (!plugin.adminMode().isActive(other)) other.hidePlayer(plugin, player);
+        refreshHiddenPlayer(player);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> refreshHiddenPlayer(player), 1L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> refreshHiddenPlayer(player), 10L);
+        broadcastPresence(player, false);
         Messages.normal(player, "Vanish aktiviert. Inventar und Status wurden ausfallsicher gespeichert.");
     }
 
-    private void leave(Player player, boolean message) {
+    private void leave(Player player, boolean message, boolean announce) {
         Snapshot snapshot = snapshots.get(player.getUniqueId());
         vanished.remove(player.getUniqueId());
-        for (Player other : Bukkit.getOnlinePlayers()) other.showPlayer(plugin, player);
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) other.showPlayer(plugin, player);
+        }
         if (snapshot != null) {
             apply(player, snapshot);
             snapshots.remove(player.getUniqueId());
@@ -72,7 +78,25 @@ public final class VanishManager implements Listener {
             player.setInvulnerable(false);
             player.setCollidable(true);
         }
+        if (announce && player.isOnline()) broadcastPresence(player, true);
         if (message) Messages.normal(player, "Vanish deaktiviert. Dein vorheriger Status wurde wiederhergestellt.");
+    }
+
+    private void refreshHiddenPlayer(Player hidden) {
+        if (!hidden.isOnline() || !isVanished(hidden)) return;
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (!viewer.equals(hidden)) viewer.hidePlayer(plugin, hidden);
+        }
+    }
+
+    private void broadcastPresence(Player player, boolean joined) {
+        String message = joined
+            ? Messages.value("", player.getName(), " betritt das Rival-Projekt.")
+            : Messages.value("", player.getName(), " hat das Rival-Projekt verlassen.");
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (!viewer.equals(player)) viewer.sendMessage(message);
+        }
+        Bukkit.getConsoleSender().sendMessage(message);
     }
 
     private static void apply(Player player, Snapshot snapshot) {
@@ -92,7 +116,7 @@ public final class VanishManager implements Listener {
     }
 
     public void disable(Player player) {
-        if (isVanished(player)) leave(player, false);
+        if (isVanished(player)) leave(player, false, true);
     }
 
     @EventHandler
@@ -104,21 +128,25 @@ public final class VanishManager implements Listener {
             saveSnapshots();
             Messages.normal(event.getPlayer(), "Dein Admin-Inventar wurde nach einem unterbrochenen Vanish sicher wiederhergestellt.");
         }
-        for (UUID id : vanished) {
-            Player hidden = Bukkit.getPlayer(id);
-            if (hidden != null && !plugin.adminMode().isActive(event.getPlayer())) event.getPlayer().hidePlayer(plugin, hidden);
-        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (UUID id : vanished) {
+                Player hidden = Bukkit.getPlayer(id);
+                if (hidden != null && !hidden.equals(event.getPlayer())) event.getPlayer().hidePlayer(plugin, hidden);
+            }
+        });
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
-        if (isVanished(event.getPlayer())) leave(event.getPlayer(), false);
+        if (!isVanished(event.getPlayer())) return;
+        event.setQuitMessage(null);
+        leave(event.getPlayer(), false, false);
     }
 
     public void restoreAll() {
         for (UUID id : new HashSet<>(vanished)) {
             Player player = Bukkit.getPlayer(id);
-            if (player != null) leave(player, false);
+            if (player != null) leave(player, false, false);
         }
     }
 

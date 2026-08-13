@@ -27,7 +27,7 @@ import java.util.*;
 public final class ModGate implements Listener, PluginMessageListener {
     public static final String AUTH_CHANNEL = "rival:auth";
     public static final String STATE_CHANNEL = "rival:state";
-    private static final byte PROTOCOL = 1;
+    private static final byte PROTOCOL = 2;
     private final RivalPlugin plugin;
     private final DataStore data;
     private final CombatManager combat;
@@ -114,7 +114,7 @@ public final class ModGate implements Listener, PluginMessageListener {
             return;
         }
         long timeoutSeconds = plugin.getConfig().getLong("security.handshake-timeout-seconds", 8);
-        if (attempts * 5L >= timeoutSeconds * 20L) {
+        if (attempts * 2L >= timeoutSeconds * 20L) {
             if (plugin.getConfig().getBoolean("security.require-client-mod", true))
                 player.kickPlayer(plugin.getConfig().getString("messages.unauthorized-server"));
             return;
@@ -173,6 +173,7 @@ public final class ModGate implements Listener, PluginMessageListener {
             boolean playtimeEnabled = plugin.getConfig().getBoolean("playtime.enabled", true);
             out.writeBoolean(playtimeEnabled);
             out.writeLong(playtimeEnabled ? plugin.playtime().remaining(plugin.playtime().current(player)) : 0L);
+            out.writeLong(playtimeEnabled ? plugin.playtime().playedToday(plugin.playtime().current(player)) : 0L);
             var clan = plugin.clans().clan(player);
             out.writeUTF(clan == null ? "" : clan.name() + " [" + clan.tag() + "]");
             player.sendPluginMessage(plugin, STATE_CHANNEL, raw.toByteArray());

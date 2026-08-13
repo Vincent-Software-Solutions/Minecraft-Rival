@@ -28,7 +28,7 @@ commands:
     permission: rival.player.rules
   admin:
     description: Rival-Administration
-    usage: /admin [mode|players|playtime|broadcast|rules|ban|unban|warn|warnings|help|...]
+    usage: /admin [mode|setup|players|playtime|broadcast|rules|ban|unban|warn|warnings|help|...]
     permission: rival.admin
 permissions:
   rival.player:

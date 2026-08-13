@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.IconSet;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import de.minecraft.rival.RivalMod;
+import de.minecraft.rival.client.mixin.GuiAccessor;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping;
@@ -46,12 +47,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
+import org.lwjgl.glfw.GLFW;
 
 @OnlyIn(Dist.CLIENT)
 public final class RivalClient {
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final String MOD_ID = RivalMod.MOD_ID;
-    private static final byte PROTOCOL = 1;
+    private static final byte PROTOCOL = 2;
     private static final String DENIED = "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server.";
     private static final ResourceLocation AUTH_ID = new ResourceLocation("rival", "auth");
     private static final ResourceLocation STATE_ID = new ResourceLocation("rival", "state");
@@ -84,11 +86,14 @@ public final class RivalClient {
     private static volatile UUID nemesisId = new UUID(0, 0);
     private static volatile String clanName = "";
     private static volatile long playtimeSeconds;
+    private static volatile long playedSeconds;
     private static volatile boolean playtimeEnabled;
     private static boolean disconnecting;
     private static boolean customDebug;
+    private static boolean f3Held;
     private static boolean iconInstalled;
     private static boolean registrationPending;
+    private static volatile long chatVisibleUntil;
 
     private final EventNetworkChannel authChannel;
 
@@ -152,6 +157,7 @@ public final class RivalClient {
         nemesisId = new UUID(0, 0);
         clanName = "";
         playtimeSeconds = 0;
+        playedSeconds = 0;
         playtimeEnabled = false;
         registrationPending = true;
     }
@@ -247,9 +253,11 @@ public final class RivalClient {
             String nextName = in.readUTF();
             boolean nextPlaytimeEnabled = in.readBoolean();
             long nextPlaytime = in.readLong();
+            long nextPlayed = in.readLong();
             String nextClan = in.readUTF();
             if (nextHearts < 0 || nextHearts > 3 || nextCombat < 0 || nextCombat > 86_400
-                || nextName.length() > 64 || nextPlaytime < 0 || nextPlaytime > 31_536_000L || nextClan.length() > 48) return;
+                || nextName.length() > 64 || nextPlaytime < 0 || nextPlaytime > 31_536_000L
+                || nextPlayed < 0 || nextPlayed > 31_536_000L || nextClan.length() > 48) return;
             hearts = nextHearts;
             combatSeconds = nextCombat;
             nemesisRevealed = nextRevealed;
@@ -257,6 +265,7 @@ public final class RivalClient {
             nemesisName = nextName;
             playtimeEnabled = nextPlaytimeEnabled;
             playtimeSeconds = nextPlaytime;
+            playedSeconds = nextPlayed;
             clanName = nextClan;
         } catch (IOException ignored) {
         }
@@ -264,12 +273,12 @@ public final class RivalClient {
 
     private static void enforceConnection(Minecraft client) {
         installBranding(client);
-        if (client.options.renderDebug) {
-            client.options.renderDebug = false;
-            client.options.renderDebugCharts = false;
-            client.options.renderFpsChart = false;
-            customDebug = !customDebug;
-        }
+        boolean f3Down = InputConstants.isKeyDown(client.getWindow().getWindow(), GLFW.GLFW_KEY_F3);
+        if (f3Down && !f3Held) customDebug = !customDebug;
+        f3Held = f3Down;
+        client.options.renderDebug = false;
+        client.options.renderDebugCharts = false;
+        client.options.renderFpsChart = false;
         if (client.level == null || client.getConnection() == null || disconnecting) return;
         String forbidden = forbiddenModification();
         if (forbidden != null) {
@@ -356,35 +365,50 @@ public final class RivalClient {
         int textureHeight = HEART_TEXTURE_HEIGHTS[heartCount];
         int renderWidth = HEART_RENDER_WIDTHS[heartCount];
         int renderHeight = HEART_RENDER_HEIGHTS[heartCount];
-        int hotbarTop = graphics.guiHeight() - 22;
-        int heartY = hotbarTop - renderHeight;
+        // Die Vanilla-XP-Leiste beginnt ungefähr 32 Pixel über dem unteren Rand.
+        // Das komplette Herzbild sitzt mit Abstand oberhalb davon und überdeckt
+        // weder XP-Leiste noch Hotbar.
+        int xpBarTop = graphics.guiHeight() - 32;
+        // Actionbar-Nachrichten liegen im Vanilla-HUD genau in diesem Bereich.
+        // Solange eine eingeblendet ist, wandert der gesamte Rival-Block nach
+        // oben und kehrt danach automatisch direkt über die XP-Leiste zurück.
+        GuiAccessor gui = (GuiAccessor) client.gui;
+        boolean actionbarVisible = gui.rival$getOverlayMessageTime() > 0;
+        boolean chatVisible = client.screen instanceof net.minecraft.client.gui.screens.ChatScreen
+            || System.currentTimeMillis() < chatVisibleUntil;
+        int messageOffset = chatVisible ? 34 : actionbarVisible ? 27 : 0;
+        int heartY = xpBarTop - renderHeight - 8 - messageOffset;
         if (heartCount > 0) {
             graphics.blit(HEART_TEXTURES[heartCount], center - renderWidth / 2, heartY,
                 renderWidth, renderHeight, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
         }
 
-        int headX = center - 8;
-        int headY = heartY - 20;
-        graphics.fill(headX - 1, headY - 1, headX + 17, headY + 17, 0xFF111111);
+        int headSize = 12;
+        int headX = center - headSize / 2;
+        int headY = heartY - headSize - 4;
+        // Kleine, halbtransparente Doppelkante statt des früheren massiven
+        // schwarzen 18x18-Felds.
+        graphics.fill(headX - 2, headY - 2, headX + headSize + 2, headY + headSize + 2, 0x68101014);
+        graphics.fill(headX - 1, headY - 1, headX + headSize + 1, headY + headSize + 1, 0xB0202228);
         PlayerInfo target = nemesisRevealed && client.getConnection() != null
             ? client.getConnection().getOnlinePlayers().stream()
                 .filter(info -> info.getProfile().getName().equalsIgnoreCase(nemesisName)).findFirst().orElse(null)
             : null;
-        if (target != null) PlayerFaceRenderer.draw(graphics, target.getSkinLocation(), headX, headY, 16);
+        if (target != null) PlayerFaceRenderer.draw(graphics, target.getSkinLocation(), headX, headY, headSize);
         else if (nemesisRevealed && !nemesisId.equals(new UUID(0, 0))) {
-            PlayerFaceRenderer.draw(graphics, DefaultPlayerSkin.getDefaultSkin(nemesisId), headX, headY, 16);
+            PlayerFaceRenderer.draw(graphics, DefaultPlayerSkin.getDefaultSkin(nemesisId), headX, headY, headSize);
         } else {
-            graphics.fill(headX, headY, headX + 16, headY + 16, 0xFF050505);
+            graphics.fill(headX, headY, headX + headSize, headY + headSize, 0xD6050507);
             String marker = nemesisRevealed && !nemesisName.isBlank() ? nemesisName.substring(0, 1).toUpperCase() : "?";
-            graphics.drawString(client.font, marker, center - client.font.width(marker) / 2, headY + 4, 0xFFFFFFFF, true);
+            graphics.drawString(client.font, marker, center - client.font.width(marker) / 2, headY + 2, 0xFFE9EDF3, false);
         }
         if (nemesisRevealed && !nemesisName.isBlank()) {
             graphics.drawString(client.font, nemesisName, center - client.font.width(nemesisName) / 2,
-                headY - 10, 0xFF55FFFF, true);
+                headY - 9, 0xFF55FFFF, true);
         }
         if (combatSeconds > 0) {
             String combat = "Im Kampf • " + combatSeconds + "s";
-            int combatY = headY - (nemesisRevealed && !nemesisName.isBlank() ? 21 : 11);
+            int combatY = headY - (nemesisRevealed && !nemesisName.isBlank() ? 20 : 10);
             graphics.drawString(client.font, combat, center - client.font.width(combat) / 2, combatY, 0xFFFF5555, true);
         }
         if (customDebug) renderProjectDebug(graphics, client);
@@ -401,6 +425,10 @@ public final class RivalClient {
         graphics.drawString(client.font, credit, scaledWidth - client.font.width(credit) - 9,
             9, 0x809AA3AE, false);
         graphics.pose().popPose();
+    }
+
+    public static void noteChatMessage() {
+        chatVisibleUntil = System.currentTimeMillis() + 10_500L;
     }
 
     private static void renderLowHealthVignette(GuiGraphics graphics, float effectiveHealth) {
@@ -434,7 +462,9 @@ public final class RivalClient {
         String coordinates = String.format(java.util.Locale.ROOT, "XYZ  %.1f  %.1f  %.1f",
             client.player.getX(), client.player.getY(), client.player.getZ());
         String clan = "Clan  " + (clanName.isBlank() ? "–" : clanName);
-        String time = "Spielzeit  " + (playtimeEnabled ? formatTime(playtimeSeconds) : "deaktiviert");
+        String time = "Spielzeit  " + (playtimeEnabled
+            ? formatTime(playedSeconds) + " gespielt / " + formatTime(playtimeSeconds) + " übrig"
+            : "deaktiviert");
         for (String line : new String[]{coordinates, clan, time}) {
             graphics.fill(x - 2, y - 2, x + client.font.width(line) + 3, y + 10, 0xA6080D14);
             graphics.drawString(client.font, line, x, y, 0xFFE5EDF7, false);
