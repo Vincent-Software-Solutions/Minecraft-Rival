@@ -82,4 +82,21 @@ tasks.register('obfuscateRelease', JavaExec) {
     }
 }
 
-tasks.named('build') { dependsOn 'obfuscateRelease' }
+tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Prüft, dass alle Mixin-Einstiegsklassen die Verschlüsselung überleben.'
+    dependsOn 'obfuscateRelease'
+    doLast {
+        def releaseJar = layout.buildDirectory.file("libs/RivalMod-${project.version}.jar").get().asFile
+        def mixinConfig = new groovy.json.JsonSlurper().parseText(
+            zipTree(releaseJar).matching { include 'minecraft_rival.mixins.json' }.singleFile.text)
+        def entries = (mixinConfig.mixins ?: []) + (mixinConfig.client ?: []) + (mixinConfig.server ?: [])
+        entries.each { name ->
+            def path = "${mixinConfig.package.replace('.', '/')}/${name}.class"
+            if (zipTree(releaseJar).matching { include path }.isEmpty())
+                throw new GradleException("Release-Mixin fehlt nach Verschlüsselung: ${path}")
+        }
+    }
+}
+
+tasks.named('build') { dependsOn 'verifyReleaseJar' }

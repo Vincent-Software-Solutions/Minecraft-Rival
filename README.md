@@ -131,7 +131,7 @@ Alle Adminfunktionen benötigen `rival.admin`. Ein berechtigter Spieler agiert t
 | Kategorie | Befehle |
 |---|---|
 | GUI/System | `/admin mode`, `/admin`, `/admin help`, `/admin reload`, `/admin vanish` |
-| Spielerübersicht | `/admin players [Seite]`: online, Teilnahme, Herzen, Seite, Clan, YouTube, Combat, Admin/Vanish und Spielzeit |
+| Spielerzentrale | `/admin players [Seite]`: online, Teilnahme, Herzen, Seite, Clan, YouTube, Combat, Admin/Vanish und Spielzeit |
 | Playtime-Ranking | `/admin playtime ranking`: heute gespielte Zeit aller bekannten Spieler, absteigend sortiert |
 | Projekt | `/admin project <start|stop|schedule> [Datum]`, `/admin setlocation waiting` |
 | Seiten-Spawns | `/admin spawn <negative|positive> <add|clear>` |
@@ -141,7 +141,6 @@ Alle Adminfunktionen benötigen `rival.admin`. Ein berechtigter Spieler agiert t
 | Finale | `/admin endfight <status|start|stop>`; Status listet verbleibende Spieler und Herzen |
 | Erzfeind | `/admin erzfeind` |
 
-`/admin` öffnet immer das Spielleitungs-Dashboard. Dort wird der Admin-Modus direkt aktiviert, anschließend führen die Level durch Karte einrichten, Spieler/Seiten, Projektstart und Erzfeind-Reveal. Unter „Karte einrichten“ erhält man einen Setup-Stick: Rechtsklick setzt den gewählten Punkt, Linksklick wechselt zum nächsten Modus. Warteraum, beide vertikal unendlichen Inselzonen, X-/Z-Trennlinie, Seitenspawns und Finalmitte lassen sich damit ohne Koordinatenbefehle konfigurieren.
 | Spieler | `/admin player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]` |
 | Gräber | `/admin graves <count|deleteall|near|player> [Radius/Spieler]` |
 | Clans | `/admin clan <create|add|remove|owner|color|tag|info|disband> ...` |
@@ -150,6 +149,10 @@ Alle Adminfunktionen benötigen `rival.admin`. Ein berechtigter Spieler agiert t
 | Banns | `/admin ban <Spieler> <Dauer|permanent> <Grund>`, `/admin unban <Spieler>` |
 | Verwarnungen | `/admin warn <Spieler> <Grund>`, `/admin warnings <Spieler> [list|clear]` |
 | Jede Config-Option | `/admin config <config.yml-Pfad> <Wert>` |
+
+`/admin` öffnet immer das Spielleitungs-Dashboard. Dort wird der Admin-Modus direkt aktiviert, anschließend führen Untermenüs durch Karte einrichten, Spielerzentrale, Projektstart und Erzfeind-Reveal. In der **Spielerzentrale** zeigt jeder Spielerkopf den vollständigen Status. Spielerkopf → **Herzen verwalten** öffnet die Herz-Unterseite; dort lassen sich 0, 1, 2 oder 3 Herzen direkt festlegen oder einzeln hinzufügen beziehungsweise abziehen. Null Herzen markiert den Spieler als ausgeschieden, ein späterer positiver Wert aktiviert ihn wieder.
+
+Unter „Karte einrichten“ erhält man einen Setup-Stick: Rechtsklick setzt den gewählten Punkt, Linksklick wechselt zum nächsten Modus. Warteraum, beide vertikal unendlichen Inselzonen, X-/Z-Trennlinie, Seitenspawns und Finalmitte lassen sich damit ohne Koordinatenbefehle konfigurieren.
 
 Ein `/admin broadcast`, der bei deaktiviertem Admin-Modus eingegeben wird, landet dauerhaft in der persönlichen Warteschlange. Beim nächsten `/admin mode` werden alle wartenden Broadcasts in ihrer ursprünglichen Reihenfolge gesendet. Zeitangaben für Banns können kombiniert werden, beispielsweise `30m`, `12h`, `5d` oder `1w2d`. Standardmäßig führt jede dritte Verwarnung zu einem automatischen Bann für fünf Tage; `moderation.warns-before-ban` und `moderation.auto-ban-days` sind konfigurierbar.
 

@@ -154,12 +154,16 @@ public final class MenuListener implements Listener {
         int pages = Math.max(1, (players.size() + 44) / 45);
         int page = Math.max(0, Math.min(pages - 1, requestedPage));
         Inventory menu = createMenu("players:" + page, 54,
-            "Rival • Spieler " + (page + 1) + "/" + pages, ChatColor.GOLD);
+            "Rival • Spielerzentrale " + (page + 1) + "/" + pages, ChatColor.GOLD);
         int start = page * 45;
         for (int slot = 0; slot < 45 && start + slot < players.size(); slot++)
             menu.setItem(slot, playerStatusItem(players.get(start + slot)));
         if (page > 0) menu.setItem(45, helpItem(Material.ARROW, "Vorherige Seite", "Seite " + page));
-        menu.setItem(48, helpItem(Material.PAPER, "Bekannte Spieler: " + players.size(), "Seite " + (page + 1) + " von " + pages));
+        long active = players.stream().filter(record -> !record.eliminated() && record.hearts() > 0).count();
+        menu.setItem(47, helpItem(Material.REDSTONE, "Herzen verwalten",
+            "Spielerkopf anklicken und Herz-Menü öffnen."));
+        menu.setItem(48, helpItem(Material.PAPER, "Spieler: " + players.size() + " • Aktiv: " + active,
+            "Auf jedem Kopf siehst du Herzen und Status."));
         menu.setItem(49, helpItem(Material.BARRIER, "Zurück zur Administration", "Klick: Admin-Hauptmenü"));
         if (page + 1 < pages) menu.setItem(53, helpItem(Material.ARROW, "Nächste Seite", "Seite " + (page + 2)));
         else menu.setItem(53, creditItem());
@@ -167,24 +171,41 @@ public final class MenuListener implements Listener {
     }
 
     public void openPlayerControl(Player viewer, PlayerRecord record, int returnPage) {
-        Inventory menu = createMenu("player:" + record.uuid() + ":" + returnPage, 27,
-            "Rival • " + record.lastName(), ChatColor.GOLD);
+        Inventory menu = createMenu("player:" + record.uuid() + ":" + returnPage, 45,
+            "Rival • Spieler • " + record.lastName(), ChatColor.GOLD);
         menu.setItem(4, playerStatusItem(record));
-        menu.setItem(10, helpItem(Material.BLUE_BED, "Seite NEGATIV",
+        menu.setItem(11, helpItem(Material.BLUE_BED, "Seite NEGATIV",
             "Klick: Spieler der negativen Kartenseite zuweisen"));
-        menu.setItem(11, helpItem(Material.WHITE_BED, "Keine Seite",
+        menu.setItem(12, helpItem(Material.WHITE_BED, "Keine Seite",
             "Klick: Zuweisung entfernen und in den Warteraum setzen"));
-        menu.setItem(12, helpItem(Material.RED_BED, "Seite POSITIV",
+        menu.setItem(13, helpItem(Material.RED_BED, "Seite POSITIV",
             "Klick: Spieler der positiven Kartenseite zuweisen"));
-        menu.setItem(14, helpItem(Material.REDSTONE, "Herzen: " + record.hearts(),
-            "Linksklick: +1 Herz", "Rechtsklick: -1 Herz"));
-        menu.setItem(15, helpItem(record.eliminated() ? Material.TOTEM_OF_UNDYING : Material.SKELETON_SKULL,
+        menu.setItem(15, helpItem(Material.REDSTONE, "Herzen verwalten • " + record.hearts() + "/3",
+            "Klick: eigenes Herz-Menü öffnen", "Direkt 0, 1, 2 oder 3 Herzen setzen"));
+        menu.setItem(21, helpItem(record.eliminated() ? Material.TOTEM_OF_UNDYING : Material.SKELETON_SKULL,
             record.eliminated() ? "Spieler wiederbeleben" : "Spieler ausscheiden lassen",
             "Klick: Status kontrolliert umschalten"));
-        menu.setItem(16, helpItem(Material.CLOCK, "Spielzeit zurücksetzen",
+        menu.setItem(23, helpItem(Material.CLOCK, "Spielzeit zurücksetzen",
             "Klick: heutige Spielzeit dieses Spielers löschen"));
-        menu.setItem(22, helpItem(Material.ARROW, "Zurück zur Spielerübersicht", "Klick: vorherige Seite"));
-        menu.setItem(26, creditItem());
+        menu.setItem(31, helpItem(Material.ARROW, "Zurück zur Spielerzentrale", "Klick: vorherige Seite"));
+        menu.setItem(40, creditItem());
+        viewer.openInventory(menu);
+    }
+
+    public void openHeartControl(Player viewer, PlayerRecord record, int returnPage) {
+        Inventory menu = createMenu("hearts:" + record.uuid() + ":" + returnPage, 45,
+            "Rival • Herzen • " + record.lastName(), ChatColor.RED);
+        menu.setItem(4, playerStatusItem(record));
+        menu.setItem(10, heartValueItem(record, 0, Material.BARRIER, "Ausscheiden"));
+        menu.setItem(12, heartValueItem(record, 1, Material.RED_DYE, "1 Herz"));
+        menu.setItem(14, heartValueItem(record, 2, Material.REDSTONE, "2 Herzen"));
+        menu.setItem(16, heartValueItem(record, 3, Material.REDSTONE_BLOCK, "3 Herzen"));
+        menu.setItem(20, helpItem(Material.GRAY_DYE, "Ein Herz abziehen",
+            "Aktuell: " + record.hearts() + "/3", "Klick: -1"));
+        menu.setItem(24, helpItem(Material.LIME_DYE, "Ein Herz hinzufügen",
+            "Aktuell: " + record.hearts() + "/3", "Klick: +1"));
+        menu.setItem(31, helpItem(Material.ARROW, "Zurück zu " + record.lastName(), "Klick: Spieler-Menü"));
+        menu.setItem(40, creditItem());
         viewer.openInventory(menu);
     }
 
@@ -218,6 +239,10 @@ public final class MenuListener implements Listener {
         }
         if (holder.id.startsWith("player:")) {
             handlePlayerControl(player, holder.id, event);
+            return;
+        }
+        if (holder.id.startsWith("hearts:")) {
+            handleHeartControl(player, holder.id, event.getRawSlot());
             return;
         }
         if (holder.id.equals("setup")) {
@@ -344,32 +369,54 @@ public final class MenuListener implements Listener {
             page = Integer.parseInt(parts[2]);
         } catch (IllegalArgumentException ex) { openPlayerOverview(viewer, 0); return; }
         if (record == null) { openPlayerOverview(viewer, page); return; }
-        int max = plugin.getConfig().getInt("combat.maximum-hearts", 3);
         switch (event.getRawSlot()) {
-            case 10 -> setSide(viewer, record, -1);
-            case 11 -> setSide(viewer, record, 0);
-            case 12 -> setSide(viewer, record, 1);
-            case 14 -> {
-                int hearts = Math.max(0, Math.min(max, record.hearts() + (event.isRightClick() ? -1 : 1)));
-                record.hearts(hearts);
-                record.eliminated(hearts == 0);
-                savePlayerChange(record);
-            }
-            case 15 -> {
+            case 11 -> setSide(viewer, record, -1);
+            case 12 -> setSide(viewer, record, 0);
+            case 13 -> setSide(viewer, record, 1);
+            case 15 -> { openHeartControl(viewer, record, page); return; }
+            case 21 -> {
                 boolean revive = record.eliminated() || record.hearts() == 0;
                 record.eliminated(!revive);
                 record.hearts(revive ? plugin.getConfig().getInt("combat.starting-hearts", 3) : 0);
                 savePlayerChange(record);
             }
-            case 16 -> {
+            case 23 -> {
                 record.playDate(java.time.LocalDate.MIN);
                 record.playedSeconds(0);
                 savePlayerChange(record);
             }
-            case 22 -> { openPlayerOverview(viewer, page); return; }
+            case 31 -> { openPlayerOverview(viewer, page); return; }
             default -> { return; }
         }
         openPlayerControl(viewer, record, page);
+    }
+
+    private void handleHeartControl(Player viewer, String id, int slot) {
+        String[] parts = id.split(":");
+        if (parts.length != 3) { openPlayerOverview(viewer, 0); return; }
+        PlayerRecord record;
+        int page;
+        try {
+            record = plugin.data().player(java.util.UUID.fromString(parts[1]));
+            page = Integer.parseInt(parts[2]);
+        } catch (IllegalArgumentException ex) { openPlayerOverview(viewer, 0); return; }
+        if (record == null) { openPlayerOverview(viewer, page); return; }
+        if (slot == 31) { openPlayerControl(viewer, record, page); return; }
+        int hearts = switch (slot) {
+            case 10 -> 0;
+            case 12 -> 1;
+            case 14 -> 2;
+            case 16 -> 3;
+            case 20 -> Math.max(0, record.hearts() - 1);
+            case 24 -> Math.min(plugin.getConfig().getInt("combat.maximum-hearts", 3), record.hearts() + 1);
+            default -> -1;
+        };
+        if (hearts < 0) return;
+        record.hearts(hearts);
+        record.eliminated(hearts == 0);
+        savePlayerChange(record);
+        Messages.normal(viewer, record.lastName() + " hat jetzt " + hearts + (hearts == 1 ? " Herz." : " Herzen."));
+        openHeartControl(viewer, record, page);
     }
 
     private void setSide(Player viewer, PlayerRecord record, int side) {
@@ -438,6 +485,13 @@ public final class MenuListener implements Listener {
         meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private static ItemStack heartValueItem(PlayerRecord record, int value, Material material, String label) {
+        String selected = record.hearts() == value ? " • AKTUELL" : "";
+        return helpItem(material, label + selected,
+            value == 0 ? "Setzt 0 Herzen und scheidet den Spieler aus." : "Setzt die Projekt-Herzen direkt auf " + value + ".",
+            "Klick: Wert übernehmen");
     }
 
     private List<PlayerRecord> knownPlayers() {
