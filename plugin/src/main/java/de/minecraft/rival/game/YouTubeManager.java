@@ -14,6 +14,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,7 +25,7 @@ import org.joml.Vector3f;
 
 import java.util.*;
 
-public final class YouTubeManager implements Listener, CommandExecutor {
+public final class YouTubeManager implements Listener, CommandExecutor, TabCompleter {
     private static final String LABEL = "&#FB0000ʏ&#FC2B2Bᴏ&#FC5555ᴜ&#FD8080ᴛ&#FEAAAAᴜ&#FED5D5ʙ&#FFFFFFᴇ";
     private final RivalPlugin plugin;
     private final NamespacedKey markerKey;
@@ -155,6 +156,14 @@ public final class YouTubeManager implements Listener, CommandExecutor {
 
     public boolean isActive(UUID playerId) {
         return active.contains(playerId);
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+                                      @NotNull String alias, String @NotNull [] args) {
+        if (args.length != 1) return List.of();
+        String candidate = "bestätigen";
+        return candidate.startsWith(args[0].toLowerCase(Locale.ROOT)) ? List.of(candidate) : List.of();
     }
 
     private record Pending(boolean enabling, long expiresAt) {}

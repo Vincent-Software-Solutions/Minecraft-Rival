@@ -176,7 +176,7 @@ public final class ModGate implements Listener, PluginMessageListener {
             out.writeLong(playtimeEnabled ? plugin.playtime().remaining(plugin.playtime().current(player)) : 0L);
             out.writeLong(playtimeEnabled ? plugin.playtime().playedToday(plugin.playtime().current(player)) : 0L);
             var clan = plugin.clans().clan(player);
-            out.writeUTF(clan == null ? "" : clan.name() + " [" + clan.tag() + "]");
+            out.writeUTF(clan == null ? "" : clan.color() + clan.name() + " &8[" + clan.color() + clan.tag() + "&8]");
             player.sendPluginMessage(plugin, STATE_CHANNEL, raw.toByteArray());
         } catch (IOException impossible) {
             throw new UncheckedIOException(impossible);

@@ -5,16 +5,21 @@ import de.minecraft.rival.util.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.DeflaterOutputStream;
 
 /** Creates frozen top-down terrain snapshots and streams them to authenticated clients. */
@@ -22,6 +27,7 @@ public final class WorldMapManager {
     public static final String CHANNEL = "rival:map";
     private static final byte PROTOCOL = 2;
     private static final int PAYLOAD = 28_000;
+    private static final Pattern REGION_FILE = Pattern.compile("r\\.(-?\\d+)\\.(-?\\d+)\\.mca");
     private final RivalPlugin plugin;
     private final File file;
     private volatile Snapshot current;
@@ -41,16 +47,14 @@ public final class WorldMapManager {
     public boolean hasSnapshot() { return current != null; }
     public long updatedAt() { return current == null ? 0L : current.version; }
 
-    public void update(Player actor) {
+    public void update(CommandSender actor) {
         if (updating) { Messages.error(actor, "Die Weltkarte wird bereits aktualisiert."); return; }
         World world = plugin.mainWorld();
         updating = true;
         int configuredResolution = plugin.getConfig().getInt("world-map.resolution", 512);
         int resolution = Math.max(128, Math.min(768, configuredResolution));
-        int radius = Math.max(128, Math.min(4096, plugin.getConfig().getInt("world-map.radius-blocks", 1024)));
-        int centerX = actor.getWorld().equals(world) ? actor.getLocation().getBlockX() : world.getSpawnLocation().getBlockX();
-        int centerZ = actor.getWorld().equals(world) ? actor.getLocation().getBlockZ() : world.getSpawnLocation().getBlockZ();
-        int minX = centerX - radius, minZ = centerZ - radius, maxX = centerX + radius, maxZ = centerZ + radius;
+        Bounds bounds = generatedWorldBounds(world);
+        int minX = bounds.minX, minZ = bounds.minZ, maxX = bounds.maxX, maxZ = bounds.maxZ;
         Map<Long, List<Integer>> pixelsByChunk = new LinkedHashMap<>();
         byte[] rgb = new byte[resolution * resolution * 3];
         for (int index = 0; index < resolution * resolution; index++) {
@@ -61,7 +65,8 @@ public final class WorldMapManager {
             setColor(rgb, index, 0x101720);
         }
         Deque<Long> candidates = new ArrayDeque<>(pixelsByChunk.keySet());
-        Messages.normal(actor, "Weltkarten-Snapshot scannt " + candidates.size() + " Chunk-Positionen schonend in Teilabschnitten …");
+        Messages.normal(actor, "Weltkarte lädt die vollständige generierte Projektwelt (" + candidates.size()
+            + " relevante Chunks). Bis zum nächsten Admin-Update bleibt dieser Stand eingefroren …");
         new BukkitRunnable() {
             @Override public void run() {
                 int batch = 0;
@@ -90,7 +95,7 @@ public final class WorldMapManager {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    private void finishUpdate(Player actor, byte[] rgb, int resolution,
+    private void finishUpdate(CommandSender actor, byte[] rgb, int resolution,
                               int minX, int minZ, int maxX, int maxZ) {
         CompletableFuture.supplyAsync(() -> compress(rgb, resolution, minX, minZ, maxX, maxZ))
             .whenComplete((snapshot, failure) -> {
@@ -144,6 +149,30 @@ public final class WorldMapManager {
 
     private static int coordinate(int pixel, int resolution, int minimum, int maximum) {
         return minimum + (int) ((long) pixel * (maximum - minimum) / Math.max(1, resolution - 1));
+    }
+
+    private Bounds generatedWorldBounds(World world) {
+        Path regionDirectory = world.getWorldFolder().toPath().resolve("region");
+        int minRegionX = Integer.MAX_VALUE, minRegionZ = Integer.MAX_VALUE;
+        int maxRegionX = Integer.MIN_VALUE, maxRegionZ = Integer.MIN_VALUE;
+        if (Files.isDirectory(regionDirectory)) try (var files = Files.list(regionDirectory)) {
+            for (Path path : files.toList()) {
+                Matcher matcher = REGION_FILE.matcher(path.getFileName().toString());
+                if (!matcher.matches()) continue;
+                int regionX = Integer.parseInt(matcher.group(1));
+                int regionZ = Integer.parseInt(matcher.group(2));
+                minRegionX = Math.min(minRegionX, regionX); maxRegionX = Math.max(maxRegionX, regionX);
+                minRegionZ = Math.min(minRegionZ, regionZ); maxRegionZ = Math.max(maxRegionZ, regionZ);
+            }
+        } catch (IOException | NumberFormatException ex) {
+            plugin.getLogger().warning("Regionen der Weltkarte konnten nicht vollständig gelesen werden: " + ex.getMessage());
+        }
+        if (minRegionX != Integer.MAX_VALUE) return new Bounds(minRegionX * 512, minRegionZ * 512,
+            (maxRegionX + 1) * 512 - 1, (maxRegionZ + 1) * 512 - 1);
+        Location spawn = world.getSpawnLocation();
+        int radius = Math.max(128, Math.min(4096, plugin.getConfig().getInt("world-map.radius-blocks", 1024)));
+        return new Bounds(spawn.getBlockX() - radius, spawn.getBlockZ() - radius,
+            spawn.getBlockX() + radius, spawn.getBlockZ() + radius);
     }
 
     private static void setColor(byte[] rgb, int index, int color) {
@@ -201,5 +230,6 @@ public final class WorldMapManager {
     }
 
     private static long key(int x, int z) { return ((long) x << 32) ^ (z & 0xffffffffL); }
+    private record Bounds(int minX, int minZ, int maxX, int maxZ) {}
     private record Snapshot(long version, int width, int height, int minX, int minZ, int maxX, int maxZ, byte[] compressed) {}
 }

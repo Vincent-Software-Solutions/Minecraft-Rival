@@ -17,7 +17,6 @@ import java.util.zip.InflaterInputStream;
 
 /** Smooth, zoomable project overview opened through the configurable map key. */
 public final class RivalMapScreen extends Screen {
-    private static final ResourceLocation FALLBACK_MAP = new ResourceLocation("minecraft_rival", "textures/gui/project_map.png");
     private static final ResourceLocation LOGO = new ResourceLocation("minecraft_rival", "icon.png");
     private static final int TEXTURE_SIZE = 1254;
     private static final float MIN_ZOOM = 0.55f;
@@ -62,8 +61,18 @@ public final class RivalMapScreen extends Screen {
 
         graphics.fill(x - 6, y - 6, x + renderedWidth + 6, y + renderedHeight + 6, 0x94000000);
         RenderSystem.enableBlend();
-        ResourceLocation texture = mapLocation == null ? FALLBACK_MAP : mapLocation;
-        graphics.blit(texture, x, y, renderedWidth, renderedHeight, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
+        if (mapLocation == null) {
+            graphics.fill(x, y, x + renderedWidth, y + renderedHeight, 0xFF111A24);
+            for (int line = 0; line <= 8; line++) {
+                int gridX = x + renderedWidth * line / 8;
+                int gridY = y + renderedHeight * line / 8;
+                graphics.fill(gridX, y, gridX + 1, y + renderedHeight, 0x3A6C8097);
+                graphics.fill(x, gridY, x + renderedWidth, gridY + 1, 0x3A6C8097);
+            }
+        } else {
+            graphics.blit(mapLocation, x, y, renderedWidth, renderedHeight, 0, 0,
+                textureWidth, textureHeight, textureWidth, textureHeight);
+        }
 
         renderPlayerMarker(graphics, x, y, renderedWidth, renderedHeight);
 
@@ -71,7 +80,7 @@ public final class RivalMapScreen extends Screen {
         graphics.blit(LOGO, 15, height - logoSize - 15,
             logoSize, logoSize, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, TEXTURE_SIZE, TEXTURE_SIZE);
 
-        graphics.drawCenteredString(font, mapData == null ? "PROJEKTKARTE • WARTE AUF ADMIN-SNAPSHOT" : "PROJEKTKARTE • EINGEFRORENER SERVERSTAND",
+        graphics.drawCenteredString(font, mapData == null ? "WELTKARTE • WARTE AUF ADMIN-UPDATE" : "GESAMTE WELTKARTE • EINGEFRORENER SERVERSTAND",
             width / 2, 10, 0xFFF2F5FA);
         graphics.drawCenteredString(font, "Mausrad: Zoom  •  Ziehen: Verschieben  •  "
                 + RivalClient.mapKeyLabel() + "/Esc: Schließen",

@@ -6,8 +6,7 @@
   "refmap": "minecraft_rival.refmap.json",
   "client": [
     "AntiXrayMixin",
-    "GameRendererMixin",
-    "GuiAccessor"
+    "GameRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

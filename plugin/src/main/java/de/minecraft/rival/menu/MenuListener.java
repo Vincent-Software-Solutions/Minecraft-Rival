@@ -37,7 +37,8 @@ public final class MenuListener implements Listener {
         menu.setItem(12, helpItem(Material.REDSTONE, "Herzen, Combat & Gräber",
             "Du startest mit 3 Projekt-Herzen.", "Die Grafik sitzt mittig direkt über der Hotbar.", "Spielerschaden markiert beide 30 Sekunden.", "Nur ein Tod im Combat kostet ein Herz."));
         menu.setItem(14, helpItem(Material.CLOCK, "Spielzeit & Anzeigen",
-            "/spielzeit zeigt gespielt und verbleibend.", "/spielzeit anzeige schaltet die Live-Bossbar um.", "Im Warteraum läuft keine Spielzeit ab."));
+            "/spielzeit zeigt gespielt und verbleibend.", "/spielzeit anzeige schaltet den simplen Countdown um.",
+            "Die Bossbar ist orange/gold und zeigt nur die Restzeit.", "Im Warteraum läuft keine Spielzeit ab."));
         menu.setItem(16, helpItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "Karte, Inseln & Border",
             "Eine eigene Partikelwand trennt beide Seiten.", "Perle, Chorusfrucht, Boot und Teleports helfen nicht.", "Die normale Worldborder bleibt unverändert."));
         menu.setItem(20, helpItem(Material.WITHER_SKELETON_SKULL, "Erzfeind & Endkampf",
@@ -55,7 +56,7 @@ public final class MenuListener implements Listener {
             "Leer: sofort weg + Nachricht • sonst 24 Stunden."));
         menu.setItem(30, helpItem(Material.FILLED_MAP, "Eingefrorene Weltkarte",
             "J öffnet die zoombare Übersicht.", "Die Karte ändert sich nur nach einem Admin-Update.",
-            "Deine aktuelle Position wird darauf markiert."));
+            "Die vollständige generierte Welt ist geladen.", "Deine aktuelle Position wird darauf markiert."));
         menu.setItem(32, helpItem(Material.SPYGLASS, "Reduziertes F3",
             "F3 schaltet die kleine Projektanzeige um.", "Sichtbar sind nur XYZ, Clan sowie gespielt/übrig.",
             "Das Vanilla-Debugfenster bleibt verborgen."));
@@ -178,7 +179,7 @@ public final class MenuListener implements Listener {
         menu.setItem(31, helpItem(Material.BARRIER, "Zurück zum Dashboard", "Klick: Admin-Hauptmenü"));
         menu.setItem(40, helpItem(Material.STICK, "Bedienung", "Eintrag wählen → Stick erhalten", "Rechtsklick setzt • Linksklick wechselt"));
         menu.setItem(42, helpItem(Material.FILLED_MAP, plugin.worldMap().hasSnapshot() ? "✔ Weltkarte aktualisieren" : "○ Weltkarte erstellen",
-            "Erzeugt einen eingefrorenen Stand generierter Chunks.", "Erst der nächste Admin-Klick aktualisiert sie wieder."));
+            "Lädt die vollständige generierte Projektwelt.", "Erst der nächste Admin-Klick aktualisiert sie wieder."));
         menu.setItem(44, creditItem());
         player.openInventory(menu);
     }

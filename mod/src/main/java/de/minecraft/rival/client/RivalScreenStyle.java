@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screens.GenericDirtMessageScreen;
 import net.minecraft.client.gui.screens.ProgressScreen;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
@@ -18,6 +19,8 @@ import net.minecraft.resources.ResourceLocation;
 public final class RivalScreenStyle {
     private static final ResourceLocation LOGO = new ResourceLocation("minecraft_rival", "icon.png");
     private static final int LOGO_TEXTURE_SIZE = 1254;
+    private static Screen animatedScreen;
+    private static long animationStarted;
 
     private RivalScreenStyle() {}
 
@@ -28,8 +31,7 @@ public final class RivalScreenStyle {
     }
 
     public static boolean isModernVanillaMenu(Screen screen) {
-        return screen instanceof JoinMultiplayerScreen || screen instanceof OptionsScreen
-            || screen instanceof PauseScreen;
+        return screen instanceof JoinMultiplayerScreen || screen instanceof OptionsScreen;
     }
 
     public static void renderModernMenuBackground(Screen screen, GuiGraphics graphics) {
@@ -44,11 +46,13 @@ public final class RivalScreenStyle {
     }
 
     public static void renderCornerBranding(Screen screen, GuiGraphics graphics) {
-        if (screen == null || screen instanceof RivalTitleScreen || screen instanceof RivalMapScreen || applies(screen)) return;
+        if (screen == null || screen instanceof RivalTitleScreen || screen instanceof RivalMapScreen
+            || screen instanceof ChatScreen || applies(screen)) return;
         if (isModernVanillaMenu(screen)) {
             String section = screen instanceof JoinMultiplayerScreen ? "RIVAL SERVERBROWSER"
                 : screen instanceof OptionsScreen ? "RIVAL EINSTELLUNGEN" : "RIVAL MENÜ";
-            graphics.drawCenteredString(screen.getMinecraft().font, section, screen.width / 2, 8, 0xFFEAF3FF);
+            graphics.fill(8, 6, 8 + screen.getMinecraft().font.width(section) + 10, 19, 0xB20A111C);
+            graphics.drawString(screen.getMinecraft().font, section, 13, 8, 0xFFEAF3FF, false);
         }
         int size = 22;
         int x = 8;
@@ -56,6 +60,36 @@ public final class RivalScreenStyle {
         RenderSystem.enableBlend();
         graphics.blit(LOGO, x, y, size, size, 0, 0, LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE,
             LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE);
+        if (!isModernVanillaMenu(screen)) renderTransition(screen, graphics);
+    }
+
+    public static void renderPauseOverlay(Screen screen, GuiGraphics graphics) {
+        graphics.fill(0, 0, screen.width, screen.height, 0x30020509);
+        graphics.fillGradient(0, 0, screen.width, screen.height, 0x240C4670, 0x281C050A);
+        graphics.fill(8, 6, 78, 19, 0x920A111C);
+        graphics.drawString(screen.getMinecraft().font, "RIVAL MENÜ", 13, 8, 0xFFEAF3FF, false);
+        int size = 22;
+        graphics.blit(LOGO, 8, screen.height - size - 8, size, size, 0, 0,
+            LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE);
+        renderTransition(screen, graphics);
+    }
+
+    public static void renderModernTransition(Screen screen, GuiGraphics graphics) {
+        renderTransition(screen, graphics);
+    }
+
+    private static void renderTransition(Screen screen, GuiGraphics graphics) {
+        if (animatedScreen != screen) {
+            animatedScreen = screen;
+            animationStarted = System.currentTimeMillis();
+        }
+        float progress = Math.min(1.0f, (System.currentTimeMillis() - animationStarted) / 240.0f);
+        if (progress >= 1.0f) return;
+        float eased = 1.0f - (1.0f - progress) * (1.0f - progress);
+        int alpha = Math.round(190.0f * (1.0f - eased));
+        graphics.fill(0, 0, screen.width, screen.height, alpha << 24 | 0x030811);
+        int sweep = Math.round((screen.width + 100) * eased) - 100;
+        graphics.fill(sweep, 0, Math.min(screen.width, sweep + 54), screen.height, 0x2451C7FF);
     }
 
     public static void renderBackground(Screen screen, GuiGraphics graphics) {

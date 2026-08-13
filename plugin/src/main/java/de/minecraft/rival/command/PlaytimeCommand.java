@@ -6,11 +6,17 @@ import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public final class PlaytimeCommand implements CommandExecutor {
+import java.util.List;
+
+public final class PlaytimeCommand implements CommandExecutor, TabCompleter {
     private final PlaytimeManager playtime;
     public PlaytimeCommand(PlaytimeManager playtime) { this.playtime = playtime; }
     @Override public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
         if (!(sender instanceof Player player)) { Messages.error(sender, "Dieser Befehl ist nur für Spieler."); return true; }
+        if (args.length > 1 || (args.length == 1 && !args[0].equalsIgnoreCase("anzeige"))) {
+            Messages.error(sender, "/spielzeit [anzeige]");
+            return true;
+        }
         if (args.length == 1 && args[0].equalsIgnoreCase("anzeige")) {
             playtime.toggleBar(player);
             Messages.normal(player, "Die Spielzeit-Anzeige wurde umgeschaltet.");
@@ -21,5 +27,12 @@ public final class PlaytimeCommand implements CommandExecutor {
         player.sendMessage(Messages.value("Verbleibende tägliche Spielzeit: ", playtime.formatted(record), ""));
         player.sendMessage(Messages.value("Tracking: ", playtime.status(player), ""));
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+                                      @NotNull String alias, String @NotNull [] args) {
+        if (args.length != 1) return List.of();
+        return "anzeige".startsWith(args[0].toLowerCase(java.util.Locale.ROOT)) ? List.of("anzeige") : List.of();
     }
 }

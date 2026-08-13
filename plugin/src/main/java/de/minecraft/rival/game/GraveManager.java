@@ -10,7 +10,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -33,6 +36,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 public final class GraveManager implements Listener {
+    private static final int LOOT_SLOTS = 45;
     private final RivalPlugin plugin;
     private final NamespacedKey graveKey;
     private final File file;
@@ -50,15 +54,24 @@ public final class GraveManager implements Listener {
     public void onDeath(PlayerDeathEvent event) {
         Player dead = event.getEntity();
         List<ItemStack> contents = new ArrayList<>(Arrays.stream(dead.getInventory().getContents())
-            .filter(Objects::nonNull).map(ItemStack::clone).toList());
+            .filter(item -> item != null && !item.getType().isAir()).map(ItemStack::clone).toList());
         ItemStack cursor = dead.getItemOnCursor();
         if (!cursor.getType().isAir()) contents.add(cursor.clone());
+        if (contents.isEmpty()) event.getDrops().stream()
+            .filter(item -> item != null && !item.getType().isAir()).map(ItemStack::clone).forEach(contents::add);
+        Location deathLocation = dead.getLocation().clone();
+        long createdAt = System.currentTimeMillis();
         dead.setItemOnCursor(null);
         dead.getInventory().clear();
         event.setKeepInventory(false);
         event.getDrops().clear();
-        if (contents.isEmpty()) return;
-        create(dead, dead.getLocation(), contents, System.currentTimeMillis());
+        // Auf Mohist können während des Death-Events erzeugte Display-/ArmorStand-Entities
+        // durch die servereigene Todesbereinigung verschwinden. Ein Tick später ist der
+        // Todesablauf abgeschlossen; deshalb entsteht hier auch bei leerem Inventar immer
+        // zuverlässig ein sichtbares Grab – unabhängig davon, ob Combat aktiv war.
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (plugin.isEnabled()) create(dead, deathLocation, contents, createdAt);
+        });
     }
 
     private void create(Player owner, Location source, List<ItemStack> items, long createdAt) {
@@ -71,9 +84,9 @@ public final class GraveManager implements Listener {
         Location location = safeGraveLocation(source);
         UUID id = UUID.randomUUID();
         GraveInventory holder = new GraveInventory(id);
-        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + owner.getName());
+        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "⚰ Grab • " + owner.getName());
         holder.inventory = inventory;
-        for (ItemStack item : items) inventory.addItem(item).values().forEach(left -> graveWorld.dropItemNaturally(location, left));
+        addLoot(inventory, items, graveWorld, location);
 
         ArmorStand stand = graveWorld.spawn(location, ArmorStand.class, armor -> {
             armor.setInvisible(true);
@@ -93,7 +106,9 @@ public final class GraveManager implements Listener {
         TextDisplay text = graveWorld.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
             configureHologram(display, "Grab von " + owner.getName(), id);
         });
-        graves.put(id, new Grave(id, owner.getUniqueId(), owner.getName(), location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId()));
+        Grave grave = new Grave(id, owner.getUniqueId(), owner.getName(), location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId());
+        graves.put(id, grave);
+        decorate(grave);
         save();
         plugin.getLogger().info("Grab für " + owner.getName() + " erstellt bei " + graveWorld.getName() + " "
             + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ() + " (" + items.size() + " Stapel).");
@@ -124,6 +139,11 @@ public final class GraveManager implements Listener {
     }
 
     private void use(Player player, Grave grave) {
+        if (lootEmpty(grave.inventory)) {
+            removeIfEmptied(grave);
+            Messages.normal(player, "Dieses Grab war leer und ist verschwunden.");
+            return;
+        }
         long protectionLeft = protectionEnd(grave) - System.currentTimeMillis();
         if (!player.getUniqueId().equals(grave.owner) && protectionLeft > 0) {
             Messages.error(player, "Dieses Grab ist noch " + formatDuration(protectionLeft)
@@ -134,17 +154,49 @@ public final class GraveManager implements Listener {
             remove(grave, false);
             Messages.normal(player, "Der Grabstein und sein Inhalt wurden gelöscht.");
         } else {
+            decorate(grave);
             player.openInventory(grave.inventory);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof GraveInventory holder)) return;
+        Grave grave = graves.get(holder.id);
+        if (grave == null) { event.setCancelled(true); return; }
+        int raw = event.getRawSlot();
+        if (raw >= LOOT_SLOTS && raw < grave.inventory.getSize()) {
+            event.setCancelled(true);
+            if (raw == 53 && event.getWhoClicked() instanceof Player player) player.closeInventory();
+            return;
+        }
+        // Das Grab ist ein reines Loot-Inventar: Entnehmen ist erlaubt, Einlagern,
+        // Hotbar-Tausch und Shift-Klick aus dem Spielerinventar jedoch nicht.
+        boolean playerInventory = raw >= grave.inventory.getSize();
+        InventoryAction action = event.getAction();
+        if ((playerInventory && event.isShiftClick())
+            || action == InventoryAction.PLACE_ALL || action == InventoryAction.PLACE_ONE
+            || action == InventoryAction.PLACE_SOME || action == InventoryAction.SWAP_WITH_CURSOR
+            || action == InventoryAction.HOTBAR_SWAP || action == InventoryAction.HOTBAR_MOVE_AND_READD
+            || action == InventoryAction.COLLECT_TO_CURSOR || action == InventoryAction.CLONE_STACK) {
+            event.setCancelled(true);
+            return;
+        }
+        if (raw >= 0 && raw < LOOT_SLOTS) Bukkit.getScheduler().runTask(plugin, () -> removeIfEmptied(grave));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof GraveInventory)) return;
+        if (event.getRawSlots().stream().anyMatch(slot -> slot < event.getInventory().getSize())) event.setCancelled(true);
     }
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getInventory().getHolder() instanceof GraveInventory holder)) return;
         Grave grave = graves.get(holder.id);
-        if (grave != null && grave.inventory.isEmpty()) {
-            remove(grave, false);
-            notifyEmpty(grave);
+        if (grave != null && lootEmpty(grave.inventory)) {
+            removeIfEmptied(grave);
         }
         else save();
     }
@@ -183,6 +235,12 @@ public final class GraveManager implements Listener {
             pendingEmptyNotices.merge(grave.owner, 1, Integer::sum);
             save();
         }
+    }
+
+    private void removeIfEmptied(Grave grave) {
+        if (!graves.containsKey(grave.id) || !lootEmpty(grave.inventory)) return;
+        remove(grave, false);
+        notifyEmpty(grave);
     }
 
     private Grave grave(Entity entity) {
@@ -330,9 +388,9 @@ public final class GraveManager implements Listener {
     private void createLoaded(UUID id, UUID owner, String ownerName, Location location, long createdAt, List<ItemStack> items) {
         World world = Objects.requireNonNull(location.getWorld());
         GraveInventory holder = new GraveInventory(id);
-        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "Grab von " + ownerName);
+        Inventory inventory = Bukkit.createInventory(holder, 54, ChatColor.DARK_GRAY + "⚰ Grab • " + ownerName);
         holder.inventory = inventory;
-        items.stream().filter(Objects::nonNull).forEach(item -> inventory.addItem(item).values().forEach(left -> world.dropItemNaturally(location, left)));
+        addLoot(inventory, items, world, location);
         ArmorStand stand = world.spawn(location, ArmorStand.class, armor -> {
             armor.setInvisible(true); armor.setInvulnerable(true); armor.setGravity(false); armor.setSmall(true); armor.setBasePlate(false); armor.setGlowing(true);
             armor.getPersistentDataContainer().set(graveKey, PersistentDataType.STRING, id.toString());
@@ -344,7 +402,9 @@ public final class GraveManager implements Listener {
         TextDisplay text = world.spawn(location.clone().add(0, 1.65, 0), TextDisplay.class, display -> {
             configureHologram(display, "Grab von " + ownerName, id);
         });
-        graves.put(id, new Grave(id, owner, ownerName, location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId()));
+        Grave grave = new Grave(id, owner, ownerName, location, createdAt, inventory, stand.getUniqueId(), text.getUniqueId());
+        graves.put(id, grave);
+        decorate(grave);
     }
 
     private void configureHologram(TextDisplay display, String label, UUID id) {
@@ -373,7 +433,7 @@ public final class GraveManager implements Listener {
             yaml.set(path + "world", grave.location.getWorld().getName());
             yaml.set(path + "x", grave.location.getX()); yaml.set(path + "y", grave.location.getY()); yaml.set(path + "z", grave.location.getZ());
             yaml.set(path + "created-at", grave.createdAt);
-            yaml.set(path + "items", encode(grave.inventory.getContents()));
+            yaml.set(path + "items", encode(lootContents(grave.inventory)));
         }
         try { yaml.save(file); }
         catch (IOException ex) { plugin.getLogger().log(Level.SEVERE, "graves.yml konnte nicht gespeichert werden", ex); }
@@ -401,6 +461,66 @@ public final class GraveManager implements Listener {
         } catch (IOException | ClassNotFoundException | IllegalArgumentException ex) {
             throw new IllegalStateException("Ungültige Grabdaten", ex);
         }
+    }
+
+    private void decorate(Grave grave) {
+        ItemStack filler = named(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
+        for (int slot = LOOT_SLOTS; slot < 54; slot++) grave.inventory.setItem(slot, filler);
+        ItemStack ownerHead = new ItemStack(Material.PLAYER_HEAD);
+        var headMeta = (org.bukkit.inventory.meta.SkullMeta) ownerHead.getItemMeta();
+        headMeta.setOwnerProfile(Bukkit.createPlayerProfile(grave.owner, grave.ownerName));
+        headMeta.setDisplayName(ChatColor.AQUA + "Grab von " + grave.ownerName);
+        headMeta.setLore(List.of(
+            ChatColor.GRAY + "Position: " + grave.location.getBlockX() + ", " + grave.location.getBlockY() + ", " + grave.location.getBlockZ(),
+            ChatColor.DARK_GRAY + "by pluginsmc.com"));
+        ownerHead.setItemMeta(headMeta);
+        grave.inventory.setItem(47, ownerHead);
+
+        long protection = protectionEnd(grave) - System.currentTimeMillis();
+        grave.inventory.setItem(49, named(protection > 0 ? Material.CLOCK : Material.CHEST,
+            protection > 0 ? ChatColor.GOLD + "Besitzerschutz aktiv" : ChatColor.GREEN + "Öffentliches Grab",
+            List.of(protection > 0
+                    ? ChatColor.GRAY + "Nur der Besitzer • noch " + formatDuration(protection)
+                    : ChatColor.GRAY + "Dieses Grab darf jetzt jeder looten.",
+                ChatColor.GRAY + "Loot-Slots: obere fünf Reihen")));
+        grave.inventory.setItem(51, named(Material.HOPPER, ChatColor.AQUA + "Nur entnehmen",
+            List.of(ChatColor.GRAY + "Items können nicht in das Grab gelegt werden.",
+                ChatColor.GRAY + "Wenn der letzte Gegenstand entnommen wurde,",
+                ChatColor.GRAY + "verschwindet das Grab automatisch.")));
+        grave.inventory.setItem(53, named(Material.BARRIER, ChatColor.RED + "Grab schließen",
+            List.of(ChatColor.GRAY + "Klick: Inventar schließen")));
+    }
+
+    private static ItemStack named(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        var meta = item.getItemMeta();
+        meta.setDisplayName(name);
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static void addLoot(Inventory inventory, List<ItemStack> items, World world, Location location) {
+        int slot = 0;
+        for (ItemStack item : items) {
+            if (item == null || item.getType().isAir()) continue;
+            if (slot < LOOT_SLOTS) inventory.setItem(slot++, item.clone());
+            else world.dropItemNaturally(location, item.clone());
+        }
+    }
+
+    private static boolean lootEmpty(Inventory inventory) {
+        for (int slot = 0; slot < LOOT_SLOTS; slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (item != null && !item.getType().isAir()) return false;
+        }
+        return true;
+    }
+
+    private static ItemStack[] lootContents(Inventory inventory) {
+        ItemStack[] items = new ItemStack[LOOT_SLOTS];
+        for (int slot = 0; slot < LOOT_SLOTS; slot++) items[slot] = inventory.getItem(slot);
+        return items;
     }
 
     private record Grave(UUID id, UUID owner, String ownerName, Location location, long createdAt,

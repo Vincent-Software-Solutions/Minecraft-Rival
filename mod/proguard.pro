@@ -16,7 +16,6 @@
 -keepclassmembers class de.minecraft.rival.client.RivalScreenStyle { *; }
 -keep class de.minecraft.rival.client.mixin.AntiXrayMixin { *; }
 -keep class de.minecraft.rival.client.mixin.GameRendererMixin { *; }
--keep interface de.minecraft.rival.client.mixin.GuiAccessor { *; }
 -keepclassmembers class * {
     @net.minecraftforge.eventbus.api.SubscribeEvent <methods>;
 }

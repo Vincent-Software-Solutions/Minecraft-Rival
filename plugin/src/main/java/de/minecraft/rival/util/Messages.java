@@ -17,6 +17,7 @@ public final class Messages {
     }
 
     public static String text(String value) { return color(value); }
+    public static String prefix() { return prefix; }
     public static String normal(String value) { return prefix + ChatColor.GRAY + safe(value); }
     public static String error(String value) { return prefix + ChatColor.RED + safe(value); }
     public static String value(String before, Object value, String after) {

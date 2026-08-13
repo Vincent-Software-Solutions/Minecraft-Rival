@@ -81,11 +81,14 @@ public final class RivalPlugin extends JavaPlugin {
 
         register(moderation, adminMode, vanish, graves, projects, zones, borders, playtime, combat, endFight, modGate, youtube, menus, setupTools, blacklist, new PresentationListener(this));
         command("help", new HelpCommand(this));
-        command("spielzeit", new PlaytimeCommand(playtime));
+        PlaytimeCommand playtimeCommand = new PlaytimeCommand(playtime);
+        command("spielzeit", playtimeCommand);
+        getCommand("spielzeit").setTabCompleter(playtimeCommand);
         ClanCommand clanCommand = new ClanCommand(clans);
         command("clan", clanCommand);
         getCommand("clan").setTabCompleter(clanCommand);
         command("youtube", youtube);
+        getCommand("youtube").setTabCompleter(youtube);
         command("rules", new RulesCommand(rules));
         AdminCommand adminCommand = new AdminCommand(this);
         command("admin", adminCommand);
