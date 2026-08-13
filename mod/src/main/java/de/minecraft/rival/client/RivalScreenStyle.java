@@ -9,6 +9,9 @@ import net.minecraft.client.gui.screens.GenericDirtMessageScreen;
 import net.minecraft.client.gui.screens.ProgressScreen;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.OptionsScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.resources.ResourceLocation;
 
 /** One consistent loading/error surface with a single centered project logo. */
@@ -22,6 +25,37 @@ public final class RivalScreenStyle {
         return screen instanceof ConnectScreen || screen instanceof DisconnectedScreen
             || screen instanceof ReceivingLevelScreen || screen instanceof GenericDirtMessageScreen
             || screen instanceof ProgressScreen;
+    }
+
+    public static boolean isModernVanillaMenu(Screen screen) {
+        return screen instanceof JoinMultiplayerScreen || screen instanceof OptionsScreen
+            || screen instanceof PauseScreen;
+    }
+
+    public static void renderModernMenuBackground(Screen screen, GuiGraphics graphics) {
+        int width = screen.width;
+        int height = screen.height;
+        graphics.fill(0, 0, width, height, 0xF2070B12);
+        graphics.fillGradient(0, 0, width / 2, height, 0xD70B2948, 0xF305090F);
+        graphics.fillGradient(width / 2, 0, width, height, 0xF305090F, 0xD7470B16);
+        graphics.fillGradient(0, 0, width, Math.max(58, height / 5), 0x4400A8FF, 0x00000000);
+        graphics.fill(18, 17, width - 18, 19, 0x8051C7FF);
+        graphics.fill(width / 2, 17, width - 18, 19, 0xA0FF4D57);
+    }
+
+    public static void renderCornerBranding(Screen screen, GuiGraphics graphics) {
+        if (screen == null || screen instanceof RivalTitleScreen || screen instanceof RivalMapScreen || applies(screen)) return;
+        if (isModernVanillaMenu(screen)) {
+            String section = screen instanceof JoinMultiplayerScreen ? "RIVAL SERVERBROWSER"
+                : screen instanceof OptionsScreen ? "RIVAL EINSTELLUNGEN" : "RIVAL MENÜ";
+            graphics.drawCenteredString(screen.getMinecraft().font, section, screen.width / 2, 8, 0xFFEAF3FF);
+        }
+        int size = 22;
+        int x = 8;
+        int y = screen.height - size - 8;
+        RenderSystem.enableBlend();
+        graphics.blit(LOGO, x, y, size, size, 0, 0, LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE,
+            LOGO_TEXTURE_SIZE, LOGO_TEXTURE_SIZE);
     }
 
     public static void renderBackground(Screen screen, GuiGraphics graphics) {

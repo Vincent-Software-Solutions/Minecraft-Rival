@@ -21,6 +21,8 @@ combat:
   maximum-hearts: 3
 grave:
   lifetime-hours: 24
+  # Nach dem Tod darf zunächst ausschließlich der Besitzer auf das Grab zugreifen.
+  owner-protection-minutes: 8
 playtime:
   enabled: true
   daily-minutes: 180
@@ -63,6 +65,13 @@ moderation:
 youtube:
   # Zeitfenster für die anklickbare /youtube-Bestätigung.
   confirmation-seconds: 30
+item-blacklist:
+  # Bukkit-Materialnamen, verwaltbar über /admin blacklist oder das Admin-GUI.
+  materials: []
+world-map:
+  # Karte bleibt zwischen manuellen Admin-Aktualisierungen unverändert.
+  resolution: 512
+  radius-blocks: 1024
 messages:
   unauthorized-server: "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server."
   eliminated: "Du hast alle Herzen verloren. Danke für deine Teilnahme"

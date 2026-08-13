@@ -30,38 +30,39 @@ public final class MenuListener implements Listener {
     public MenuListener(RivalPlugin plugin) { this.plugin = plugin; }
 
     public void openHelp(Player player) {
-        Inventory menu = createMenu("help", 45, "Minecraft Rival • Spielerhilfe", ChatColor.AQUA);
-        menu.setItem(10, helpItem(Material.COMPASS, "Start & Warteraum",
+        Inventory menu = createMenu("help", 54, "Rival • Spielerhilfe", ChatColor.AQUA);
+        menu.setItem(10, helpItem(Material.COMPASS, "Projektstart & Warteraum",
             "Vor dem Start zeigt die Bossbar den Countdown.",
             "Ohne Seitenzuweisung bleibst du geschützt", "im Warteraum, bis das Projekt beginnt."));
-        menu.setItem(11, helpItem(Material.REDSTONE, "Projekt-Herzen & Combat",
+        menu.setItem(12, helpItem(Material.REDSTONE, "Herzen, Combat & Gräber",
             "Du startest mit 3 Projekt-Herzen.", "Die Grafik sitzt mittig direkt über der Hotbar.", "Spielerschaden markiert beide 30 Sekunden.", "Nur ein Tod im Combat kostet ein Herz."));
-        menu.setItem(12, helpItem(Material.PLAYER_HEAD, "Gräber",
-            "Jeder Tod sichert Inventar, Rüstung und Offhand.", "Rechtsklick: öffnen • Schleichen+Klick: löschen.", "Jeder darf zugreifen; Löschung nach 24 Stunden."));
-        menu.setItem(13, helpItem(Material.CLOCK, "Tägliche Spielzeit",
+        menu.setItem(14, helpItem(Material.CLOCK, "Spielzeit & Anzeigen",
             "/spielzeit zeigt gespielt und verbleibend.", "/spielzeit anzeige schaltet die Live-Bossbar um.", "Im Warteraum läuft keine Spielzeit ab."));
-        menu.setItem(14, helpItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "Mitteltrennung",
+        menu.setItem(16, helpItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "Karte, Inseln & Border",
             "Eine eigene Partikelwand trennt beide Seiten.", "Perle, Chorusfrucht, Boot und Teleports helfen nicht.", "Die normale Worldborder bleibt unverändert."));
-        menu.setItem(15, helpItem(Material.WITHER_SKELETON_SKULL, "Erzfeind",
+        menu.setItem(20, helpItem(Material.WITHER_SKELETON_SKULL, "Erzfeind & Endkampf",
             "Vor dem Reveal siehst du ein schwarzes ?.", "Danach zeigt das HUD dein persönliches Ziel.", "Ein Combat-Kill gibt bis maximal 3 Herzen zurück."));
-        menu.setItem(16, helpItem(Material.DRAGON_HEAD, "Endkampf",
-            "Bei 2 verbleibenden Spielern ist das Finale bereit.", "Es startet ausschließlich durch einen Admin.", "Dann gilt auf der Mittelinsel eine echte 100×100-Border."));
-
-        menu.setItem(19, helpItem(Material.NETHERRACK, "Nether- & End-Insel",
-            "Nether und End sind Inseln auf der Projektkarte.", "Du erreichst sie ohne Dimensionsportale.", "Portale, Gateways und Enderdrache sind deaktiviert."));
-        menu.setItem(20, helpItem(Material.ZOMBIE_HEAD, "Mobs & Handel",
-            "Mobs können ihre Insel oder Kartenseite nicht verlassen.", "Auf den Inseln erscheinen passende normale Mobs.", "Villager, Wandering Trader und Handel sind deaktiviert."));
-        menu.setItem(21, helpItem(Material.WHITE_BANNER, "Clans",
-            "Ein Spieler kann nur einem Clan angehören.", "Standardmaximum: 4 Mitglieder.", "/clan help zeigt Gründen, Einladen und Verwalten."));
-        menu.setItem(22, helpItem(Material.REDSTONE_TORCH, "YouTube-Modus",
-            "/youtube fordert immer eine Bestätigung an.", "Währenddessen steht ʏᴏᴜᴛᴜʙᴇ unter deinem Namen.", "Erneutes /youtube beendet die Aufnahme bestätigt."));
-        menu.setItem(23, helpItem(Material.WRITABLE_BOOK, "Regeln",
-            "/rules oder /regeln zeigt alle Projektregeln.", "Regelnummern bleiben stabil, bis ein Admin sie löscht."));
-        menu.setItem(24, helpItem(Material.COMMAND_BLOCK, "Wichtige Befehle",
-            "/spielzeit [anzeige] • /clan help", "/youtube • /rules • /help"));
-        menu.setItem(25, helpItem(Material.SPYGLASS, "Reduziertes F3",
-            "F3 schaltet die kleine Projektanzeige um.", "Sichtbar sind nur XYZ, Clan und Restspielzeit.", "Das Vanilla-Debugfenster bleibt verborgen."));
-        menu.setItem(40, creditItem());
+        menu.setItem(22, helpItem(Material.WHITE_BANNER, "Clans & YouTube",
+            "Du kannst immer nur einem Clan angehören.", "/clan help erklärt alle Clan-Funktionen.",
+            "/youtube startet oder beendet nach Bestätigung."));
+        menu.setItem(24, helpItem(Material.NETHERRACK, "Inseln, Mobs & Portale",
+            "Nether und End sind Zonen derselben Welt.", "Portale, Gateways, Villager-Handel und Drache sind aus.",
+            "Mobs können Insel- und Seitengrenzen nicht verlassen."));
+        menu.setItem(28, helpItem(Material.PLAYER_HEAD, "Grab-Schutz & Freigabe",
+            "Jeder Tod sichert Inventar, Rüstung und Offhand.",
+            "8 Minuten darf nur der Besitzer zugreifen.",
+            "Danach ist das Grab für alle freigegeben.",
+            "Leer: sofort weg + Nachricht • sonst 24 Stunden."));
+        menu.setItem(30, helpItem(Material.FILLED_MAP, "Eingefrorene Weltkarte",
+            "J öffnet die zoombare Übersicht.", "Die Karte ändert sich nur nach einem Admin-Update.",
+            "Deine aktuelle Position wird darauf markiert."));
+        menu.setItem(32, helpItem(Material.SPYGLASS, "Reduziertes F3",
+            "F3 schaltet die kleine Projektanzeige um.", "Sichtbar sind nur XYZ, Clan sowie gespielt/übrig.",
+            "Das Vanilla-Debugfenster bleibt verborgen."));
+        menu.setItem(34, helpItem(Material.WRITABLE_BOOK, "Regeln & Befehle",
+            "/rules oder /regeln zeigt die Projektregeln.",
+            "/spielzeit [anzeige] • /clan help", "/youtube • /help"));
+        menu.setItem(49, creditItem());
         player.openInventory(menu);
     }
 
@@ -80,9 +81,37 @@ public final class MenuListener implements Listener {
         menu.setItem(29, helpItem(Material.COMPARATOR, "Einstellungen",
             "Spielzeit und Mob-Spawnraten anpassen."));
         menu.setItem(31, helpItem(Material.ENDER_EYE, "Teamwerkzeuge",
-            "Vanish, Gräber, Broadcast und Ranking."));
+            "Vanish, Gräber, Blacklist, Broadcast und Ranking."));
         menu.setItem(33, helpItem(Material.WRITABLE_BOOK, "Admin-Hilfe",
             "Alle Befehle nach Kategorien anzeigen."));
+        menu.setItem(40, creditItem());
+        player.openInventory(menu);
+    }
+
+    public void openAdminHelp(Player player) {
+        Inventory menu = createMenu("adminhelp", 45, "Rival • Admin-Handbuch", ChatColor.RED);
+        menu.setItem(10, helpItem(Material.LEVER, "Projektsteuerung",
+            "/admin project start|stop|schedule", "/admin border on|off|toggle",
+            "/admin erzfeind • /admin endfight status|start|stop"));
+        menu.setItem(12, helpItem(Material.COMPASS, "Karte & Einrichtung",
+            "/admin setup öffnet den Setup-Fortschritt.", "/admin worldmap update aktualisiert den Kartenstand.",
+            "Der Setup-Stick setzt Punkte ohne Koordinatenbefehle."));
+        menu.setItem(14, helpItem(Material.PLAYER_HEAD, "Spieler & Herzen",
+            "/admin players öffnet die Spielerzentrale.", "Rechtsklick auf Kopf: direkt zur Herzverwaltung.",
+            "/admin player hearts|side|revive|eliminate|timereset"));
+        menu.setItem(16, helpItem(Material.BARRIER, "Item-Blacklist",
+            "/admin blacklist öffnet das GUI.", "add|remove|list|clear [Material]",
+            "Gesperrte Items werden beim Aufheben, Verschieben und Platzieren gelöscht."));
+        menu.setItem(20, helpItem(Material.CLOCK, "Spielzeit & Mobs",
+            "/admin playtime ranking", "/admin mobrate nether|end|overworld 0-100",
+            "Weitere Werte: /admin config <Pfad> <Wert>"));
+        menu.setItem(22, helpItem(Material.ENDER_EYE, "Teamwerkzeuge",
+            "/admin vanish • /admin graves …", "Grab-Schutz für Besitzer: 8 Minuten.", "/admin broadcast <Text>",
+            "/admin rules add|remove|list"));
+        menu.setItem(24, helpItem(Material.IRON_SWORD, "Moderation",
+            "/admin ban <Spieler> <Dauer|permanent> <Grund>", "/admin unban <Spieler>",
+            "/admin warn … • /admin warnings …"));
+        menu.setItem(31, backItem());
         menu.setItem(40, creditItem());
         player.openInventory(menu);
     }
@@ -123,9 +152,12 @@ public final class MenuListener implements Listener {
     public void openTeamTools(Player player) {
         Inventory menu = createMenu("tools", 45, "Rival • Teamwerkzeuge", ChatColor.DARK_PURPLE);
         menu.setItem(10, helpItem(Material.ENDER_EYE, "Vanish", "Creative-Vanish umschalten.", "Inventar und Spielzeit bleiben geschützt."));
-        menu.setItem(12, helpItem(Material.PLAYER_HEAD, "Gräber: " + plugin.graves().count(), "Verwaltungsbefehle anzeigen."));
+        menu.setItem(12, helpItem(Material.PLAYER_HEAD, "Gräber: " + plugin.graves().count(),
+            "Verwaltungsbefehle anzeigen.", "Erste 8 Minuten nur für den Besitzer."));
         menu.setItem(14, helpItem(Material.BELL, "Broadcast", "Syntax für Ankündigungen anzeigen."));
         menu.setItem(16, helpItem(Material.CLOCK, "Spielzeit-Ranking", "Heutiges Ranking im Chat anzeigen."));
+        menu.setItem(22, helpItem(Material.BARRIER, "Item-Blacklist • " + plugin.blacklist().materials().size(),
+            "Gesperrte Gegenstände verwalten.", "Platzieren, Aufheben und Verschieben wird verhindert."));
         menu.setItem(31, backItem());
         menu.setItem(40, creditItem());
         player.openInventory(menu);
@@ -145,7 +177,27 @@ public final class MenuListener implements Listener {
         menu.setItem(26, setupItem(SetupToolManager.Mode.FINAL_CENTER, "Mitte und Höhe des Endkampfs."));
         menu.setItem(31, helpItem(Material.BARRIER, "Zurück zum Dashboard", "Klick: Admin-Hauptmenü"));
         menu.setItem(40, helpItem(Material.STICK, "Bedienung", "Eintrag wählen → Stick erhalten", "Rechtsklick setzt • Linksklick wechselt"));
+        menu.setItem(42, helpItem(Material.FILLED_MAP, plugin.worldMap().hasSnapshot() ? "✔ Weltkarte aktualisieren" : "○ Weltkarte erstellen",
+            "Erzeugt einen eingefrorenen Stand generierter Chunks.", "Erst der nächste Admin-Klick aktualisiert sie wieder."));
         menu.setItem(44, creditItem());
+        player.openInventory(menu);
+    }
+
+    public void openBlacklist(Player player, int requestedPage) {
+        List<Material> materials = plugin.blacklist().materials();
+        int pages = Math.max(1, (materials.size() + 26) / 27);
+        int page = Math.max(0, Math.min(pages - 1, requestedPage));
+        Inventory menu = createMenu("blacklist:" + page, 45, "Rival • Item-Blacklist " + (page + 1) + "/" + pages, ChatColor.RED);
+        int start = page * 27;
+        for (int slot = 0; slot < 27 && start + slot < materials.size(); slot++) {
+            Material material = materials.get(start + slot);
+            menu.setItem(slot + 9, helpItem(material, "✖ " + material.name(), "Klick: von der Blacklist entfernen"));
+        }
+        menu.setItem(4, helpItem(Material.HOPPER, "Item aus Hand hinzufügen",
+            "Halte den gewünschten Gegenstand in der Haupthand.", "Klick: Material sperren und überall löschen."));
+        if (page > 0) menu.setItem(36, helpItem(Material.ARROW, "Vorherige Seite"));
+        menu.setItem(40, backItem());
+        if (page + 1 < pages) menu.setItem(44, helpItem(Material.ARROW, "Nächste Seite")); else menu.setItem(44, creditItem());
         player.openInventory(menu);
     }
 
@@ -231,7 +283,10 @@ public final class MenuListener implements Listener {
             if (event.getRawSlot() >= 0 && event.getRawSlot() < 45) {
                 int index = page * 45 + event.getRawSlot();
                 List<PlayerRecord> records = knownPlayers();
-                if (index < records.size()) openPlayerControl(player, records.get(index), page);
+                if (index < records.size()) {
+                    if (event.isRightClick()) openHeartControl(player, records.get(index), page);
+                    else openPlayerControl(player, records.get(index), page);
+                }
             } else if (event.getRawSlot() == 45) openPlayerOverview(player, page - 1);
             else if (event.getRawSlot() == 49) openAdmin(player);
             else if (event.getRawSlot() == 53 && (page + 1) * 45 < knownPlayers().size()) openPlayerOverview(player, page + 1);
@@ -245,12 +300,17 @@ public final class MenuListener implements Listener {
             handleHeartControl(player, holder.id, event.getRawSlot());
             return;
         }
+        if (holder.id.startsWith("blacklist:")) {
+            handleBlacklist(player, holder.id, event.getRawSlot());
+            return;
+        }
         if (holder.id.equals("setup")) {
             SetupToolManager.Mode mode = setupMode(event.getRawSlot());
             if (mode != null) {
                 player.closeInventory();
                 plugin.setupTools().give(player, mode);
             } else if (event.getRawSlot() == 31) openAdmin(player);
+            else if (event.getRawSlot() == 42) { player.closeInventory(); plugin.worldMap().update(player); }
             return;
         }
         if (holder.id.equals("game")) {
@@ -265,13 +325,17 @@ public final class MenuListener implements Listener {
             handleToolsMenu(player, event.getRawSlot());
             return;
         }
+        if (holder.id.equals("adminhelp")) {
+            if (event.getRawSlot() == 31) openAdmin(player);
+            return;
+        }
         switch (event.getRawSlot()) {
             case 11 -> openSetup(player);
             case 13 -> openPlayerOverview(player, 0);
             case 15 -> openGameControl(player);
             case 29 -> openSettings(player);
             case 31 -> openTeamTools(player);
-            case 33 -> { player.closeInventory(); player.performCommand("admin help"); }
+            case 33 -> openAdminHelp(player);
             default -> { }
         }
     }
@@ -321,9 +385,34 @@ public final class MenuListener implements Listener {
             case 12 -> { player.closeInventory(); Messages.normal(player, "Gräber: /admin graves count|deleteall|near|player"); }
             case 14 -> { player.closeInventory(); Messages.normal(player, "Broadcast: /admin broadcast <Text> • Zeilenumbruch: \\n"); }
             case 16 -> { player.closeInventory(); player.performCommand("admin playtime ranking"); }
+            case 22 -> openBlacklist(player, 0);
             case 31 -> openAdmin(player);
             default -> { }
         }
+    }
+
+    private void handleBlacklist(Player player, String id, int slot) {
+        int page;
+        try { page = Integer.parseInt(id.substring("blacklist:".length())); }
+        catch (NumberFormatException ex) { page = 0; }
+        if (slot == 4) {
+            Material material = player.getInventory().getItemInMainHand().getType();
+            if (material.isAir()) Messages.error(player, "Halte zuerst einen Gegenstand in der Haupthand.");
+            else if (plugin.blacklist().add(material)) Messages.normal(player, material.name() + " wurde gesperrt und entfernt.");
+            else Messages.error(player, "Dieses Material ist bereits gesperrt.");
+            openBlacklist(player, page);
+            return;
+        }
+        List<Material> materials = plugin.blacklist().materials();
+        int index = page * 27 + slot - 9;
+        if (slot >= 9 && slot < 36 && index >= 0 && index < materials.size()) {
+            Material removed = materials.get(index);
+            plugin.blacklist().remove(removed);
+            Messages.normal(player, removed.name() + " ist wieder erlaubt.");
+            openBlacklist(player, page);
+        } else if (slot == 36) openBlacklist(player, page - 1);
+        else if (slot == 40) openTeamTools(player);
+        else if (slot == 44) openBlacklist(player, page + 1);
     }
 
     @EventHandler
@@ -339,8 +428,11 @@ public final class MenuListener implements Listener {
         return helpItem(Material.DRAGON_HEAD, "Endkampf: " + (plugin.endFight().isRunning() ? "AKTIV" : "BEREIT/MANUELL"), lore.toArray(String[]::new));
     }
 
-    private static ItemStack setupItem(SetupToolManager.Mode mode, String description) {
-        return helpItem(mode.icon(), mode.title(), description, "Klick: passenden Setup-Stick erhalten");
+    private ItemStack setupItem(SetupToolManager.Mode mode, String description) {
+        boolean configured = plugin.setupTools().isConfigured(mode);
+        return helpItem(configured ? Material.LIME_DYE : mode.icon(),
+            (configured ? "✔ " : "○ ") + mode.title(), description,
+            configured ? "EINGERICHTET • Klick: neu setzen" : "NOCH OFFEN • Klick: Setup-Stick erhalten");
     }
 
     private static SetupToolManager.Mode setupMode(int slot) {
@@ -482,6 +574,9 @@ public final class MenuListener implements Listener {
             + (onlinePlayer != null && plugin.vanish().isVanished(onlinePlayer) ? " + VANISH" : ""));
         lore.add(ChatColor.GRAY + "Heute gespielt: " + plugin.playtime().formattedPlayed(record));
         lore.add(ChatColor.GRAY + "Spielzeit übrig: " + plugin.playtime().formatted(record));
+        lore.add("");
+        lore.add(ChatColor.AQUA + "Linksklick: Spielerprofil");
+        lore.add(ChatColor.RED + "Rechtsklick: Herzen direkt verwalten");
         meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
@@ -496,7 +591,9 @@ public final class MenuListener implements Listener {
 
     private List<PlayerRecord> knownPlayers() {
         return plugin.data().players().stream()
-            .sorted(Comparator.comparing(PlayerRecord::lastName, String.CASE_INSENSITIVE_ORDER))
+            .sorted(Comparator.<PlayerRecord, Boolean>comparing(record -> record.eliminated() || record.hearts() <= 0)
+                .thenComparing(record -> Bukkit.getPlayer(record.uuid()) == null)
+                .thenComparing(PlayerRecord::lastName, String.CASE_INSENSITIVE_ORDER))
             .toList();
     }
 

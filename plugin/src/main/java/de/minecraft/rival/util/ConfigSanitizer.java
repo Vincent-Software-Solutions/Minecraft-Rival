@@ -36,6 +36,7 @@ public final class ConfigSanitizer {
         int maximum = config.getInt("combat.maximum-hearts", 3);
         changed |= clamp(config, "combat.starting-hearts", 1, maximum);
         changed |= clamp(config, "grave.lifetime-hours", 1, 8760);
+        changed |= clamp(config, "grave.owner-protection-minutes", 0, 1440);
         changed |= clamp(config, "playtime.daily-minutes", 0, 1440);
         changed |= clamp(config, "project.waiting-radius", 1.0, 1000.0);
         changed |= clamp(config, "border.side-capacity", 1, 1000);
@@ -53,6 +54,8 @@ public final class ConfigSanitizer {
         changed |= clamp(config, "moderation.warns-before-ban", 1, 100);
         changed |= clamp(config, "moderation.auto-ban-days", 1, 3650);
         changed |= clamp(config, "youtube.confirmation-seconds", 5, 300);
+        changed |= clamp(config, "world-map.resolution", 128, 1024);
+        changed |= clamp(config, "world-map.radius-blocks", 128, 4096);
         if (changed) plugin.saveConfig();
     }
 

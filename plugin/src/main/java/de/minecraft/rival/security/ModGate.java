@@ -138,6 +138,7 @@ public final class ModGate implements Listener, PluginMessageListener {
                 pending.remove(player.getUniqueId());
                 verified.add(player.getUniqueId());
                 sendState(player);
+                plugin.worldMap().send(player);
             }
         } catch (IOException ignored) {
         }
