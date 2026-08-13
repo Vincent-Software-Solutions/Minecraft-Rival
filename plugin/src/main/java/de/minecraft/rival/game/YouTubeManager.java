@@ -20,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ public final class YouTubeManager implements Listener, CommandExecutor {
     public void enable() {
         Bukkit.getWorlds().forEach(world -> world.getEntitiesByClass(TextDisplay.class).stream()
             .filter(display -> display.getPersistentDataContainer().has(markerKey, PersistentDataType.BYTE)).forEach(Entity::remove));
-        Bukkit.getScheduler().runTaskTimer(plugin, this::tickDisplays, 1L, 2L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::tickDisplays, 1L, 10L);
     }
 
     @Override
@@ -90,23 +91,28 @@ public final class YouTubeManager implements Listener, CommandExecutor {
 
     private void createDisplay(Player player) {
         removeDisplay(player.getUniqueId());
-        Location location = labelLocation(player);
-        TextDisplay display = player.getWorld().spawn(location, TextDisplay.class, text -> {
+        TextDisplay display = player.getWorld().spawn(player.getLocation(), TextDisplay.class, text -> {
             text.setText(Messages.text(LABEL));
             text.setBillboard(Display.Billboard.CENTER);
             text.setSeeThrough(false);
             text.setShadowed(true);
             text.setDefaultBackground(false);
-            text.setLineWidth(120);
+            text.setLineWidth(90);
             text.setInvulnerable(true);
             text.setPersistent(false);
             text.setGravity(false);
-            text.setViewRange(32);
+            text.setViewRange(24);
+            text.setInterpolationDelay(0);
+            text.setInterpolationDuration(3);
             var transformation = text.getTransformation();
-            transformation.getScale().set(0.65f, 0.65f, 0.65f);
+            transformation.getTranslation().set(new Vector3f(0.0f, 0.22f, 0.0f));
+            transformation.getScale().set(0.48f, 0.48f, 0.48f);
             text.setTransformation(transformation);
             text.getPersistentDataContainer().set(markerKey, PersistentDataType.BYTE, (byte) 1);
         });
+        // Passengers are interpolated as part of the player instead of being teleported
+        // every two ticks. This removes the visible trailing/jitter while moving.
+        player.addPassenger(display);
         displays.put(player.getUniqueId(), display.getUniqueId());
     }
 
@@ -116,16 +122,11 @@ public final class YouTubeManager implements Listener, CommandExecutor {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null || !player.isOnline()) continue;
             Entity entity = displays.containsKey(playerId) ? Bukkit.getEntity(displays.get(playerId)) : null;
-            if (!(entity instanceof TextDisplay display) || !display.isValid() || !display.getWorld().equals(player.getWorld())) {
+            if (!(entity instanceof TextDisplay display) || !display.isValid() || !display.getWorld().equals(player.getWorld())
+                || !player.getPassengers().contains(display)) {
                 createDisplay(player);
-                continue;
             }
-            display.teleport(labelLocation(player));
         }
-    }
-
-    private static Location labelLocation(Player player) {
-        return player.getLocation().add(0, player.getHeight() + 0.18, 0);
     }
 
     private void removeDisplay(UUID playerId) {

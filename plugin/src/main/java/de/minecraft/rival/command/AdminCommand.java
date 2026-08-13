@@ -4,10 +4,12 @@ import de.minecraft.rival.RivalPlugin;
 import de.minecraft.rival.data.ClanRecord;
 import de.minecraft.rival.data.PlayerRecord;
 import de.minecraft.rival.game.ZoneManager;
+import de.minecraft.rival.game.ItemBlacklistManager;
 import de.minecraft.rival.util.Messages;
 import de.minecraft.rival.util.RivalRules;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Material;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +50,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 0) { help(sender); return true; }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help" -> help(sender);
+            case "help" -> { if (sender instanceof Player player) plugin.menus().openAdminHelp(player); else help(sender); }
             case "vanish" -> { if (sender instanceof Player player) plugin.vanish().toggle(player); else Messages.error(sender, "Nur im Spiel verfügbar."); }
             case "reload" -> { plugin.reloadRival(); Messages.normal(sender, "Konfiguration neu geladen."); }
             case "border" -> border(sender, args);
@@ -70,6 +72,8 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "warnings" -> warnings(sender, args);
             case "players" -> players(sender, args);
             case "playtime" -> playtime(sender, args);
+            case "worldmap" -> worldMap(sender, args);
+            case "blacklist" -> blacklist(sender, args);
             case "setup" -> {
                 if (!(sender instanceof Player player)) Messages.error(sender, "Nur im Spiel verfügbar.");
                 else plugin.menus().openSetup(player);
@@ -77,6 +81,40 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             default -> help(sender);
         }
         return true;
+    }
+
+    private void worldMap(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) { Messages.error(sender, "Die Weltkarte kann nur im Spiel aktualisiert werden."); return; }
+        if (args.length < 2 || !args[1].equalsIgnoreCase("update")) {
+            Messages.error(sender, "/admin worldmap update"); return;
+        }
+        plugin.worldMap().update(player);
+    }
+
+    private void blacklist(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            if (sender instanceof Player player) plugin.menus().openBlacklist(player, 0);
+            else Messages.error(sender, "/admin blacklist <add|remove|list|clear> [Material]");
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "add" -> {
+                Material material = args.length >= 3 ? ItemBlacklistManager.parse(args[2])
+                    : sender instanceof Player player ? player.getInventory().getItemInMainHand().getType() : null;
+                if (material == null || material.isAir() || !material.isItem()) Messages.error(sender, "Ungültiges Item-Material oder keine Haupthand ausgewählt.");
+                else if (plugin.blacklist().add(material)) Messages.normal(sender, material.name() + " wurde gesperrt und sofort entfernt.");
+                else Messages.error(sender, "Dieses Material ist bereits gesperrt.");
+            }
+            case "remove" -> {
+                Material material = args.length >= 3 ? ItemBlacklistManager.parse(args[2]) : null;
+                if (plugin.blacklist().remove(material)) Messages.normal(sender, material.name() + " ist wieder erlaubt.");
+                else Messages.error(sender, "Dieses Material ist nicht gesperrt.");
+            }
+            case "list" -> Messages.normal(sender, "Item-Blacklist (" + plugin.blacklist().materials().size() + "): "
+                + String.join(", ", plugin.blacklist().materials().stream().map(Material::name).toList()));
+            case "clear" -> { plugin.blacklist().clear(); Messages.normal(sender, "Die Item-Blacklist wurde geleert."); }
+            default -> Messages.error(sender, "/admin blacklist <add|remove|list|clear> [Material]");
+        }
     }
 
     private void border(CommandSender sender, String[] args) {
@@ -458,6 +496,8 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         Messages.normal(sender, "Spieler • player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]");
         Messages.normal(sender, "Übersicht • players [Seite] zeigt Status, Herzen, YouTube, Clan, Combat und Spielzeit aller Spieler");
         Messages.normal(sender, "Playtime • playtime ranking zeigt die heute gespielte Zeit aller Spieler sortiert");
+        Messages.normal(sender, "Weltkarte • worldmap update erzeugt und verteilt einen neuen eingefrorenen Kartenstand");
+        Messages.normal(sender, "Blacklist • blacklist <add|remove|list|clear> [Material] sperrt Items vollständig");
         Messages.normal(sender, "Gräber • graves <count|deleteall|near|player> [Wert]");
         Messages.normal(sender, "Clans • clan <create|add|remove|owner|color|tag|info|disband> ...");
         Messages.normal(sender, "Kommunikation • broadcast <Text> • rules <add|remove|list> • Zeilenumbruch im Broadcast: \\n");
@@ -494,7 +534,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String @NotNull [] args) {
         if (!sender.hasPermission("rival.admin")) return List.of();
         if (sender instanceof Player player && !plugin.adminMode().isActive(player)) return args.length == 1 ? filter(List.of("mode", "broadcast"), args[0]) : List.of();
-        if (args.length == 1) return filter(List.of("mode", "help", "vanish", "reload", "broadcast", "rules", "ban", "unban", "warn", "warnings", "players", "playtime", "border", "endfight", "erzfeind", "project", "setlocation", "spawn", "zone", "mobrate", "graves", "config", "player", "clan"), args[0]);
+        if (args.length == 1) return filter(List.of("mode", "help", "vanish", "reload", "broadcast", "rules", "ban", "unban", "warn", "warnings", "players", "playtime", "worldmap", "blacklist", "border", "endfight", "erzfeind", "project", "setlocation", "spawn", "zone", "mobrate", "graves", "config", "player", "clan"), args[0]);
         if (args.length == 2) return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "border" -> filter(List.of("on", "off", "toggle"), args[1]);
             case "endfight" -> filter(List.of("status", "start", "stop"), args[1]);
@@ -509,10 +549,13 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "clan" -> filter(List.of("create", "add", "remove", "owner", "color", "tag", "info", "disband"), args[1]);
             case "rules" -> filter(List.of("add", "remove", "list"), args[1]);
             case "playtime" -> filter(List.of("ranking"), args[1]);
+            case "worldmap" -> filter(List.of("update"), args[1]);
+            case "blacklist" -> filter(List.of("add", "remove", "list", "clear"), args[1]);
             case "ban", "unban", "warn", "warnings" -> filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
             default -> List.of();
         };
         if (args.length == 3 && args[0].equalsIgnoreCase("spawn")) return filter(List.of("add", "clear"), args[2]);
+        if (args.length == 3 && args[0].equalsIgnoreCase("blacklist")) return filter(Arrays.stream(Material.values()).map(Material::name).toList(), args[2]);
         if (args.length == 3 && args[0].equalsIgnoreCase("zone")) return filter(List.of("pos1", "pos2", "clear", "info"), args[2]);
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[2]);
         if (args.length == 3 && args[0].equalsIgnoreCase("clan")) {

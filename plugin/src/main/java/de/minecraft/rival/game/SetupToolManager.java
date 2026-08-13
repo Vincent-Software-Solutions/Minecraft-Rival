@@ -104,6 +104,7 @@ public final class SetupToolManager implements Listener {
                 boolean x = mode == Mode.BORDER_X;
                 plugin.getConfig().set("border.axis", x ? "X" : "Z");
                 plugin.getConfig().set("border.split-coordinate", x ? location.getX() : location.getZ());
+                plugin.getConfig().set("setup.completed." + (x ? "border_z" : "border_x"), false);
                 plugin.saveConfig();
             }
             case SPAWN_NEGATIVE -> plugin.projects().addSpawn(-1, location);
@@ -115,8 +116,25 @@ public final class SetupToolManager implements Listener {
                 plugin.saveConfig();
             }
         }
+        plugin.getConfig().set("setup.completed." + mode.name().toLowerCase(Locale.ROOT), true);
+        plugin.saveConfig();
         Messages.normal(player, mode.title() + " wurde gesetzt: " + coordinates(location)
             + (mode.name().startsWith("NETHER") || mode.name().startsWith("END") ? " • gilt auf allen Höhen" : ""));
+    }
+
+    public boolean isConfigured(Mode mode) {
+        return switch (mode) {
+            case WAITING -> plugin.projects().waitingRoom() != null;
+            case NETHER_1 -> plugin.getConfig().getLocation("zones.nether.pos1") != null;
+            case NETHER_2 -> plugin.getConfig().getLocation("zones.nether.pos2") != null;
+            case END_1 -> plugin.getConfig().getLocation("zones.end.pos1") != null;
+            case END_2 -> plugin.getConfig().getLocation("zones.end.pos2") != null;
+            case BORDER_X, BORDER_Z -> plugin.getConfig().getBoolean(
+                "setup.completed." + mode.name().toLowerCase(Locale.ROOT), false);
+            case SPAWN_NEGATIVE -> !plugin.projects().spawns(-1).isEmpty();
+            case SPAWN_POSITIVE -> !plugin.projects().spawns(1).isEmpty();
+            case FINAL_CENTER -> plugin.getConfig().getBoolean("setup.completed.final_center", false);
+        };
     }
 
     public boolean isWand(ItemStack item) {

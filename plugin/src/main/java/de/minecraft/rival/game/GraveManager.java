@@ -13,6 +13,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
@@ -36,6 +37,7 @@ public final class GraveManager implements Listener {
     private final NamespacedKey graveKey;
     private final File file;
     private final Map<UUID, Grave> graves = new HashMap<>();
+    private final Map<UUID, Integer> pendingEmptyNotices = new HashMap<>();
 
     public GraveManager(RivalPlugin plugin) {
         this.plugin = plugin;
@@ -122,6 +124,12 @@ public final class GraveManager implements Listener {
     }
 
     private void use(Player player, Grave grave) {
+        long protectionLeft = protectionEnd(grave) - System.currentTimeMillis();
+        if (!player.getUniqueId().equals(grave.owner) && protectionLeft > 0) {
+            Messages.error(player, "Dieses Grab ist noch " + formatDuration(protectionLeft)
+                + " ausschließlich für " + grave.ownerName + " geschützt.");
+            return;
+        }
         if (player.isSneaking()) {
             remove(grave, false);
             Messages.normal(player, "Der Grabstein und sein Inhalt wurden gelöscht.");
@@ -134,8 +142,47 @@ public final class GraveManager implements Listener {
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getInventory().getHolder() instanceof GraveInventory holder)) return;
         Grave grave = graves.get(holder.id);
-        if (grave != null && grave.inventory.isEmpty()) remove(grave, false);
+        if (grave != null && grave.inventory.isEmpty()) {
+            remove(grave, false);
+            notifyEmpty(grave);
+        }
         else save();
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Integer count = pendingEmptyNotices.remove(event.getPlayer().getUniqueId());
+        if (count == null || count <= 0) return;
+        String message = count == 1
+            ? "Dein Grab wurde vollständig geleert und ist verschwunden."
+            : count + " deiner Gräber wurden vollständig geleert und sind verschwunden.";
+        Messages.normal(event.getPlayer(), message);
+        save();
+    }
+
+    private long protectionEnd(Grave grave) {
+        long minutes = plugin.getConfig().getLong("grave.owner-protection-minutes", 8L);
+        return grave.createdAt + Duration.ofMinutes(Math.max(0L, minutes)).toMillis();
+    }
+
+    private static String formatDuration(long millis) {
+        long seconds = Math.max(1L, (millis + 999L) / 1000L);
+        long minutes = seconds / 60L;
+        long remainder = seconds % 60L;
+        if (minutes == 0L) return seconds + " Sekunde" + (seconds == 1L ? "" : "n");
+        return minutes + " Min " + remainder + " Sek";
+    }
+
+    private void notifyEmpty(Grave grave) {
+        Player owner = Bukkit.getPlayer(grave.owner);
+        if (owner != null && owner.isOnline()) {
+            Messages.normal(owner, "Dein Grab bei " + grave.location.getBlockX() + ", "
+                + grave.location.getBlockY() + ", " + grave.location.getBlockZ()
+                + " wurde vollständig geleert und ist verschwunden.");
+        } else {
+            pendingEmptyNotices.merge(grave.owner, 1, Integer::sum);
+            save();
+        }
     }
 
     private Grave grave(Entity entity) {
@@ -245,9 +292,15 @@ public final class GraveManager implements Listener {
 
     public void load() {
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        var noticeRoot = yaml.getConfigurationSection("pending-empty-notices");
+        if (noticeRoot != null) for (String key : noticeRoot.getKeys(false)) try {
+            int count = Math.max(0, noticeRoot.getInt(key));
+            if (count > 0) pendingEmptyNotices.put(UUID.fromString(key), count);
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Ungültiger Spieler in pending-empty-notices: " + key);
+        }
         var root = yaml.getConfigurationSection("graves");
-        if (root == null) return;
-        for (String key : root.getKeys(false)) try {
+        if (root != null) for (String key : root.getKeys(false)) try {
             UUID id = UUID.fromString(key);
             String path = "graves." + key + ".";
             String worldName = yaml.getString(path + "world", plugin.mainWorld().getName());
@@ -260,6 +313,10 @@ public final class GraveManager implements Listener {
             UUID owner = UUID.fromString(Objects.requireNonNull(yaml.getString(path + "owner")));
             String ownerName = yaml.getString(path + "owner-name", "Unbekannt");
             List<ItemStack> items = decode(yaml.getString(path + "items", ""));
+            if (items.stream().allMatch(item -> item == null || item.getType().isAir())) {
+                pendingEmptyNotices.merge(owner, 1, Integer::sum);
+                continue;
+            }
             // Entities werden nach einem Neustart eindeutig neu erzeugt; verwaiste alte Marker werden vorher entfernt.
             world.getNearbyEntities(location, 2, 3, 2).stream().filter(e -> key.equals(e.getPersistentDataContainer().get(graveKey, PersistentDataType.STRING))).forEach(Entity::remove);
             createLoaded(id, owner, ownerName, location, yaml.getLong(path + "created-at"), items);
@@ -308,6 +365,7 @@ public final class GraveManager implements Listener {
 
     public synchronized void save() {
         YamlConfiguration yaml = new YamlConfiguration();
+        pendingEmptyNotices.forEach((owner, count) -> yaml.set("pending-empty-notices." + owner, count));
         for (Grave grave : graves.values()) {
             String path = "graves." + grave.id + ".";
             yaml.set(path + "owner", grave.owner.toString());

@@ -17,9 +17,9 @@ Minecraft Rival besteht aus zwei Teilen für **Minecraft Java 1.20.1**:
 
 Danach entstehen:
 
-- `plugin/build/libs/RivalPlugins-2.0.jar`
-- `mod/build/libs/RivalMod-2.0.jar` (obfuskiert; an Spieler verteilen)
-- `mod/build/libs/RivalMod-unobfuscated-2.0.jar` (nur für Entwicklung)
+- `plugin/build/libs/RivalPlugins-3.0.jar`
+- `mod/build/libs/RivalMod-3.0.jar` (obfuskiert; an Spieler verteilen)
+- `mod/build/libs/RivalMod-unobfuscated-3.0.jar` (nur für Entwicklung)
 
 Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteilt werden.
 
@@ -37,7 +37,7 @@ Die Obfuskations-Zuordnung in `mod/build/obfuscation-map.txt` darf nicht verteil
 10. Spieler mit `/admin player side <Spieler> <-1|1>` zuweisen. Mit Wert `0` wird eine Zuweisung wieder entfernt.
 11. Optional `/admin project schedule 2026-08-11T20:00:00` setzen oder mit `/admin project start` manuell starten.
 
-> **Wichtig:** Für die Spiellogik wird serverseitig nur `RivalPlugins-2.0.jar` benötigt. Auf Mohist darf die aktuelle `RivalMod-2.0.jar` zusätzlich im Serverordner `mods/` bleiben; ihr Dist-Schutz verhindert dort das Laden von Minecraft-Clientklassen. Auf jedem Spieler-Client muss die Mod weiterhin installiert sein.
+> **Wichtig:** Für die Spiellogik wird serverseitig nur `RivalPlugins-3.0.jar` benötigt. Auf Mohist darf die aktuelle `RivalMod-3.0.jar` zusätzlich im Serverordner `mods/` bleiben; ihr Dist-Schutz verhindert dort das Laden von Minecraft-Clientklassen. Auf jedem Spieler-Client muss die Mod weiterhin installiert sein.
 
 Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor einer echten Veröffentlichung sollte es sowohl in `config.yml` als auch in `RivalClient.secret()` geändert und die Mod danach neu gebaut werden. Ein Secret in einer Clientmod kann trotz Obfuskation grundsätzlich extrahiert werden. Die Lösung erschwert Manipulation durch ProGuard und Challenge/HMAC mit zufälliger Nonce, kann aber keine mathematisch perfekte Geheimhaltung auf einem fremden Client garantieren.
 
@@ -50,7 +50,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 - Jeder Tod während dieses Tags kostet ein Projekt-Herz; ein Tod außerhalb des Combat-Tags kostet keines.
 - Bei null Herzen wird der Spieler dauerhaft projektintern gesperrt: `Du hast alle Herzen verloren. Danke für deine Teilnahme`.
 - Bei jedem Tod werden Hauptinventar, Hotbar, komplette Rüstung, Nebenhand und Cursor-Item in einen Kopf mit Hologramm gelegt, auch bei `keepInventory` oder Fluch des Verschwindens.
-- Rechtsklick öffnet ein Grab. Schleichen + Rechtsklick/Schlag löscht Grab und Inhalt. Leere Gräber verschwinden sofort, alle anderen nach 24 Stunden. Gräber und Items überstehen Neustarts.
+- Rechtsklick öffnet ein Grab. In den ersten 8 Minuten nach dem Tod darf ausschließlich der Besitzer darauf zugreifen; danach wird es für alle freigegeben. Schleichen + Rechtsklick/Schlag löscht Grab und Inhalt. Leere Gräber verschwinden sofort und der Besitzer erhält eine Nachricht – auch nach dem nächsten Login, falls er offline war. Alle anderen Gräber verschwinden nach 24 Stunden. Gräber und Items überstehen Neustarts.
 
 ### Client-Menü und reduziertes F3
 
@@ -94,6 +94,7 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 
 - Die mitgelieferte Projektkarte öffnet sich standardmäßig mit `J`. Die Belegung ist unter Optionen → Steuerung → Minecraft Rival frei änderbar.
 - Das Mausrad zoomt weich; mit gedrückter linker Maustaste lässt sich die Karte verschieben. `R` setzt Zoom und Position zurück.
+- Die Übersicht wird serverseitig aus den generierten Chunks der echten Projektwelt erzeugt. Sie bleibt eingefroren, bis ein Admin `/admin worldmap update` oder den Update-Knopf im Setup-GUI verwendet; die aktuelle Spielerposition wird auf dem Snapshot markiert.
 - Bekannte X-Ray-/Cheat-Mods und entsprechend benannte Ressourcenpakete werden beim Beitritt abgewiesen. Zusätzlich rendert die Mod vollständig verdeckte Erze nicht, sodass transparente X-Ray-Texturen sie nicht sichtbar machen.
 - Die natürliche Spawnrate ist für `nether`, `end` und `overworld` separat zwischen 0 und 100 Prozent einstellbar. 100 Prozent entspricht der normalen biomabhängigen Rate.
 - Villager und Wandering Trader spawnen nicht. Vorhandene werden entfernt, Transformationen zu Villagern und alle Merchant-Handelsfenster werden blockiert.
@@ -113,6 +114,11 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 - `/rules` und `/regeln` zeigen die dauerhaft gespeicherten, nummerierten Projektregeln.
 - Alle Systemnachrichten nutzen den konfigurierten Rival-Prefix. Normale Texte sind `&7`, Fehler `&c` und eingesetzte Werte/Placeholder `&6`.
 - Die Spieler- und Adminhilfe ist nach Themen geordnet; Infoelemente tragen darunter den grauen Hinweis `by pluginsmc.com`.
+
+### Item-Blacklist
+
+- `/admin blacklist` öffnet die grafische Verwaltung. Alternativ stehen `add`, `remove`, `list` und `clear` mit Bukkit-Materialnamen zur Verfügung.
+- Gesperrte Gegenstände werden beim Aufheben, Ablegen, Benutzen, Platzieren, Verschieben sowie in Spieler- und Weltinventaren sofort gelöscht.
 
 ## Spielerbefehle
 

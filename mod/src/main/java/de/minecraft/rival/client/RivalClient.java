@@ -58,6 +58,7 @@ public final class RivalClient {
     private static final String DENIED = "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server.";
     private static final ResourceLocation AUTH_ID = new ResourceLocation("rival", "auth");
     private static final ResourceLocation STATE_ID = new ResourceLocation("rival", "state");
+    private static final ResourceLocation MAP_ID = new ResourceLocation("rival", "map");
     private static final ResourceLocation REGISTER_ID = new ResourceLocation("minecraft", "register");
     private static final ResourceLocation[] HEART_TEXTURES = {
         null,
@@ -120,8 +121,11 @@ public final class RivalClient {
             AUTH_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
         EventNetworkChannel stateChannel = NetworkRegistry.newEventChannel(
             STATE_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
+        EventNetworkChannel mapChannel = NetworkRegistry.newEventChannel(
+            MAP_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
         authChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onAuthPayload);
         stateChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onStatePayload);
+        mapChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onMapPayload);
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -136,6 +140,12 @@ public final class RivalClient {
         byte[] raw = copyPayload(event.getPayload());
         LOGGER.debug("Rival-Spielstatus empfangen ({} Bytes).", raw.length);
         event.getSource().get().enqueueWork(() -> receiveState(raw));
+        event.getSource().get().setPacketHandled(true);
+    }
+
+    private void onMapPayload(NetworkEvent.ServerCustomPayloadEvent event) {
+        byte[] raw = copyPayload(event.getPayload());
+        event.getSource().get().enqueueWork(() -> RivalMapScreen.receive(raw));
         event.getSource().get().setPacketHandled(true);
     }
 
@@ -201,6 +211,17 @@ public final class RivalClient {
             .filter(net.minecraft.client.gui.components.AbstractButton.class::isInstance)
             .forEach(renderable -> renderable.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick()));
         event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public void onScreenBackground(ScreenEvent.BackgroundRendered event) {
+        if (RivalScreenStyle.isModernVanillaMenu(event.getScreen()))
+            RivalScreenStyle.renderModernMenuBackground(event.getScreen(), event.getGuiGraphics());
+    }
+
+    @SubscribeEvent
+    public void onScreenRendered(ScreenEvent.Render.Post event) {
+        RivalScreenStyle.renderCornerBranding(event.getScreen(), event.getGuiGraphics());
     }
 
     @SubscribeEvent
@@ -303,7 +324,7 @@ public final class RivalClient {
     }
 
     private static void sendChannelRegistration(Minecraft client) {
-        byte[] channels = (AUTH_ID + "\0" + STATE_ID + "\0").getBytes(StandardCharsets.UTF_8);
+        byte[] channels = (AUTH_ID + "\0" + STATE_ID + "\0" + MAP_ID + "\0").getBytes(StandardCharsets.UTF_8);
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(channels));
         client.getConnection().getConnection().send(new ServerboundCustomPayloadPacket(REGISTER_ID, buffer));
         LOGGER.debug("Rival-Plugin-Kanäle beim Server registriert.");
@@ -384,15 +405,15 @@ public final class RivalClient {
         boolean chatVisible = client.screen instanceof net.minecraft.client.gui.screens.ChatScreen
             || System.currentTimeMillis() < chatVisibleUntil;
         int messageOffset = chatVisible ? 34 : actionbarVisible ? 27 : 0;
-        int heartY = xpBarTop - renderHeight - 8 - messageOffset;
+        int heartY = xpBarTop - renderHeight - 5 - messageOffset;
         if (heartCount > 0) {
             graphics.blit(HEART_TEXTURES[heartCount], center - renderWidth / 2, heartY,
                 renderWidth, renderHeight, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
         }
 
-        int headSize = 12;
+        int headSize = 10;
         int headX = center - headSize / 2;
-        int headY = heartY - headSize - 4;
+        int headY = heartY - headSize - 3;
         // Kleine, halbtransparente Doppelkante statt des früheren massiven
         // schwarzen 18x18-Felds.
         graphics.fill(headX - 2, headY - 2, headX + headSize + 2, headY + headSize + 2, 0x68101014);
