@@ -90,11 +90,8 @@ Das vorinstallierte Handshake-Secret stimmt in Plugin und Mod überein. Vor eine
 - Jeder Mob erhält beim Spawn seine Ursprungszone und Hauptkartenseite. Mobbewegung, Teleports und von Mobs abgeschossene Projektile dürfen weder eine Inselzonengrenze noch die zentrale Seitentrennung passieren.
 - Außerhalb der beiden Spezialzonen gilt automatisch `overworld`. Welche normalen Mobs erscheinen können, bestimmt weiterhin das jeweilige Biom.
 
-### Projektkarte und X-Ray-Schutz
+### X-Ray-Schutz
 
-- Die mitgelieferte Projektkarte öffnet sich standardmäßig mit `J`. Die Belegung ist unter Optionen → Steuerung → Minecraft Rival frei änderbar.
-- Das Mausrad zoomt weich; mit gedrückter linker Maustaste lässt sich die Karte verschieben. `R` setzt Zoom und Position zurück.
-- Die Übersicht wird serverseitig aus allen vorhandenen Regionen der echten Projektwelt erzeugt – ohne das frühere Bild als Kartenersatz. Sie bleibt vollständig eingefroren, bis ein Admin `/admin worldmap update` oder den Update-Knopf im Setup-GUI verwendet; die aktuelle Spielerposition wird auf dem Snapshot markiert.
 - Bekannte X-Ray-/Cheat-Mods und entsprechend benannte Ressourcenpakete werden beim Beitritt abgewiesen. Zusätzlich rendert die Mod vollständig verdeckte Erze nicht, sodass transparente X-Ray-Texturen sie nicht sichtbar machen.
 - Die natürliche Spawnrate ist für `nether`, `end` und `overworld` separat zwischen 0 und 100 Prozent einstellbar. 100 Prozent entspricht der normalen biomabhängigen Rate.
 - Villager und Wandering Trader spawnen nicht. Vorhandene werden entfernt, Transformationen zu Villagern und alle Merchant-Handelsfenster werden blockiert.
@@ -156,9 +153,9 @@ Alle Adminfunktionen benötigen `rival.admin`. Ein berechtigter Spieler agiert t
 | Verwarnungen | `/admin warn <Spieler> <Grund>`, `/admin warnings <Spieler> [list|clear]` |
 | Jede Config-Option | `/admin config <config.yml-Pfad> <Wert>` |
 
-`/admin` öffnet immer das Spielleitungs-Dashboard. Dort wird der Admin-Modus direkt aktiviert, anschließend führen Untermenüs durch Karte einrichten, Spielerzentrale, Projektstart und Erzfeind-Reveal. In der **Spielerzentrale** zeigt jeder Spielerkopf den vollständigen Status. Spielerkopf → **Herzen verwalten** öffnet die Herz-Unterseite; dort lassen sich 0, 1, 2 oder 3 Herzen direkt festlegen oder einzeln hinzufügen beziehungsweise abziehen. Null Herzen markiert den Spieler als ausgeschieden, ein späterer positiver Wert aktiviert ihn wieder.
+`/admin` öffnet immer das Spielleitungs-Dashboard. Dort wird der Admin-Modus direkt aktiviert, anschließend führen Untermenüs durch Welt einrichten, Spielerzentrale, Projektstart und Erzfeind-Reveal. In der **Spielerzentrale** zeigt jeder Spielerkopf den vollständigen Status. Spielerkopf → **Herzen verwalten** öffnet die Herz-Unterseite; dort lassen sich 0, 1, 2 oder 3 Herzen direkt festlegen oder einzeln hinzufügen beziehungsweise abziehen. Null Herzen markiert den Spieler als ausgeschieden, ein späterer positiver Wert aktiviert ihn wieder.
 
-Unter „Karte einrichten“ erhält man einen Setup-Stick: Rechtsklick setzt den gewählten Punkt, Linksklick wechselt zum nächsten Modus. Warteraum, beide vertikal unendlichen Inselzonen, X-/Z-Trennlinie, Seitenspawns und Finalmitte lassen sich damit ohne Koordinatenbefehle konfigurieren.
+Unter „Welt einrichten“ erhält man einen Setup-Stick: Rechtsklick setzt den gewählten Punkt, Linksklick wechselt zum nächsten Modus. Warteraum, beide vertikal unendlichen Inselzonen, X-/Z-Trennlinie, Seitenspawns und Finalmitte lassen sich damit ohne Koordinatenbefehle konfigurieren.
 
 Ein `/admin broadcast`, der bei deaktiviertem Admin-Modus eingegeben wird, landet dauerhaft in der persönlichen Warteschlange. Beim nächsten `/admin mode` werden alle wartenden Broadcasts in ihrer ursprünglichen Reihenfolge gesendet. Zeitangaben für Banns können kombiniert werden, beispielsweise `30m`, `12h`, `5d` oder `1w2d`. Standardmäßig führt jede dritte Verwarnung zu einem automatischen Bann für fünf Tage; `moderation.warns-before-ban` und `moderation.auto-ban-days` sind konfigurierbar.
 

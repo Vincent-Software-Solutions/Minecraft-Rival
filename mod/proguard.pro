@@ -12,7 +12,6 @@
 -keepclassmembers class de.minecraft.rival.client.RivalIconPack { *; }
 -keepclassmembers class de.minecraft.rival.client.RivalTitleScreen { *; }
 -keepclassmembers class de.minecraft.rival.client.RivalTitleScreen$* { *; }
--keepclassmembers class de.minecraft.rival.client.RivalMapScreen { *; }
 -keepclassmembers class de.minecraft.rival.client.RivalScreenStyle { *; }
 -keep class de.minecraft.rival.client.mixin.AntiXrayMixin { *; }
 -keep class de.minecraft.rival.client.mixin.GameRendererMixin { *; }

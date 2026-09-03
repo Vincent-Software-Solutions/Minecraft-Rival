@@ -68,10 +68,6 @@ youtube:
 item-blacklist:
   # Bukkit-Materialnamen, verwaltbar über /admin blacklist oder das Admin-GUI.
   materials: []
-world-map:
-  # Karte bleibt zwischen manuellen Admin-Aktualisierungen unverändert.
-  resolution: 512
-  radius-blocks: 1024
 messages:
   unauthorized-server: "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server."
   eliminated: "Du hast alle Herzen verloren. Danke für deine Teilnahme"

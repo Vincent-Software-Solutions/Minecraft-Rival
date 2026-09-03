@@ -6,7 +6,6 @@ import com.mojang.logging.LogUtils;
 import de.minecraft.rival.RivalMod;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
@@ -19,7 +18,6 @@ import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.api.distmarker.Dist;
@@ -31,7 +29,6 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.event.EventNetworkChannel;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -57,7 +54,6 @@ public final class RivalClient {
     private static final String DENIED = "Dieser Server ist nicht zugelassen, benutze den offiziellen Projekt Server.";
     private static final ResourceLocation AUTH_ID = new ResourceLocation("rival", "auth");
     private static final ResourceLocation STATE_ID = new ResourceLocation("rival", "state");
-    private static final ResourceLocation MAP_ID = new ResourceLocation("rival", "map");
     private static final ResourceLocation REGISTER_ID = new ResourceLocation("minecraft", "register");
     private static final ResourceLocation[] HEART_TEXTURES = {
         null,
@@ -72,8 +68,6 @@ public final class RivalClient {
     private static final int[] HEART_RENDER_WIDTHS = {0, 11, 19, 18};
     private static final int[] HEART_RENDER_HEIGHTS = {0, 10, 10, 14};
     private static final long AUTHORIZATION_TIMEOUT_MS = 3_000L;
-    private static final KeyMapping OPEN_MAP = new KeyMapping(
-        "key.minecraft_rival.open_map", InputConstants.Type.KEYSYM, 74, "key.categories.minecraft_rival");
     private static final Set<String> FORBIDDEN_MOD_MARKERS = Set.of(
         "xray", "x-ray", "freecam", "baritone", "wurst", "meteor", "impact", "aristois",
         "liquidbounce", "cheat", "wallhack", "seedcracker", "orefinder", "findercompass");
@@ -98,20 +92,7 @@ public final class RivalClient {
     private final EventNetworkChannel authChannel;
 
     public static void initialize() {
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(RivalClient::registerKeys);
         new RivalClient();
-    }
-
-    public static void registerKeys(RegisterKeyMappingsEvent event) {
-        event.register(OPEN_MAP);
-    }
-
-    static boolean matchesMapKey(int keyCode, int scanCode) {
-        return OPEN_MAP.matches(keyCode, scanCode);
-    }
-
-    static String mapKeyLabel() {
-        return OPEN_MAP.getTranslatedKeyMessage().getString();
     }
 
     private RivalClient() {
@@ -119,11 +100,8 @@ public final class RivalClient {
             AUTH_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
         EventNetworkChannel stateChannel = NetworkRegistry.newEventChannel(
             STATE_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
-        EventNetworkChannel mapChannel = NetworkRegistry.newEventChannel(
-            MAP_ID, () -> "1", NetworkRegistry.acceptMissingOr("1"), NetworkRegistry.acceptMissingOr("1"));
         authChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onAuthPayload);
         stateChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onStatePayload);
-        mapChannel.<NetworkEvent.ServerCustomPayloadEvent>addListener(this::onMapPayload);
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -138,12 +116,6 @@ public final class RivalClient {
         byte[] raw = copyPayload(event.getPayload());
         LOGGER.debug("Rival-Spielstatus empfangen ({} Bytes).", raw.length);
         event.getSource().get().enqueueWork(() -> receiveState(raw));
-        event.getSource().get().setPacketHandled(true);
-    }
-
-    private void onMapPayload(NetworkEvent.ServerCustomPayloadEvent event) {
-        byte[] raw = copyPayload(event.getPayload());
-        event.getSource().get().enqueueWork(() -> RivalMapScreen.receive(raw));
         event.getSource().get().setPacketHandled(true);
     }
 
@@ -183,10 +155,6 @@ public final class RivalClient {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft client = Minecraft.getInstance();
-        while (OPEN_MAP.consumeClick()) {
-            if (client.level != null && client.player != null && authorized && !(client.screen instanceof RivalMapScreen))
-                client.setScreen(new RivalMapScreen());
-        }
         enforceConnection(client);
     }
 
@@ -332,7 +300,7 @@ public final class RivalClient {
     }
 
     private static void sendChannelRegistration(Minecraft client) {
-        byte[] channels = (AUTH_ID + "\0" + STATE_ID + "\0" + MAP_ID + "\0").getBytes(StandardCharsets.UTF_8);
+        byte[] channels = (AUTH_ID + "\0" + STATE_ID + "\0").getBytes(StandardCharsets.UTF_8);
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(channels));
         client.getConnection().getConnection().send(new ServerboundCustomPayloadPacket(REGISTER_ID, buffer));
         LOGGER.debug("Rival-Plugin-Kanäle beim Server registriert.");

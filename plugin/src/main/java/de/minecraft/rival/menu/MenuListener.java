@@ -39,7 +39,7 @@ public final class MenuListener implements Listener {
         menu.setItem(14, helpItem(Material.CLOCK, "Spielzeit & Anzeigen",
             "/spielzeit zeigt gespielt und verbleibend.", "/spielzeit anzeige schaltet den simplen Countdown um.",
             "Die Bossbar ist orange/gold und zeigt nur die Restzeit.", "Im Warteraum läuft keine Spielzeit ab."));
-        menu.setItem(16, helpItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "Karte, Inseln & Border",
+        menu.setItem(16, helpItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "Inseln & Border",
             "Eine eigene Partikelwand trennt beide Seiten.", "Perle, Chorusfrucht, Boot und Teleports helfen nicht.", "Die normale Worldborder bleibt unverändert."));
         menu.setItem(20, helpItem(Material.WITHER_SKELETON_SKULL, "Erzfeind & Endkampf",
             "Vor dem Reveal siehst du ein schwarzes ?.", "Danach zeigt das HUD dein persönliches Ziel.", "Ein Combat-Kill gibt bis maximal 3 Herzen zurück."));
@@ -54,9 +54,6 @@ public final class MenuListener implements Listener {
             "8 Minuten darf nur der Besitzer zugreifen.",
             "Danach ist das Grab für alle freigegeben.",
             "Leer: sofort weg + Nachricht • sonst 24 Stunden."));
-        menu.setItem(30, helpItem(Material.FILLED_MAP, "Eingefrorene Weltkarte",
-            "J öffnet die zoombare Übersicht.", "Die Karte ändert sich nur nach einem Admin-Update.",
-            "Die vollständige generierte Welt ist geladen.", "Deine aktuelle Position wird darauf markiert."));
         menu.setItem(32, helpItem(Material.SPYGLASS, "Reduziertes F3",
             "F3 schaltet die kleine Projektanzeige um.", "Sichtbar sind nur XYZ, Clan sowie gespielt/übrig.",
             "Das Vanilla-Debugfenster bleibt verborgen."));
@@ -73,7 +70,7 @@ public final class MenuListener implements Listener {
         menu.setItem(4, helpItem(active ? Material.LIME_DYE : Material.RED_DYE,
             "Admin-Modus: " + onOff(active), "Klick: Admin-Modus " + (active ? "verlassen" : "aktivieren"),
             active ? "Alle Bereiche sind freigeschaltet." : "Aktivieren, um Änderungen vorzunehmen."));
-        menu.setItem(11, helpItem(Material.STICK, "1 • Karte einrichten",
+        menu.setItem(11, helpItem(Material.STICK, "1 • Welt einrichten",
             "Warteraum, Inseln, Trennlinie und Spawns."));
         menu.setItem(13, helpItem(Material.PLAYER_HEAD, "2 • Spieler verwalten",
             "Status, Herzen, Seiten und Spielzeit."));
@@ -94,8 +91,8 @@ public final class MenuListener implements Listener {
         menu.setItem(10, helpItem(Material.LEVER, "Projektsteuerung",
             "/admin project start|stop|schedule", "/admin border on|off|toggle",
             "/admin erzfeind • /admin endfight status|start|stop"));
-        menu.setItem(12, helpItem(Material.COMPASS, "Karte & Einrichtung",
-            "/admin setup öffnet den Setup-Fortschritt.", "/admin worldmap update aktualisiert den Kartenstand.",
+        menu.setItem(12, helpItem(Material.COMPASS, "Welt & Einrichtung",
+            "/admin setup öffnet den Setup-Fortschritt.",
             "Der Setup-Stick setzt Punkte ohne Koordinatenbefehle."));
         menu.setItem(14, helpItem(Material.PLAYER_HEAD, "Spieler & Herzen",
             "/admin players öffnet die Spielerzentrale.", "Rechtsklick auf Kopf: direkt zur Herzverwaltung.",
@@ -165,7 +162,7 @@ public final class MenuListener implements Listener {
     }
 
     public void openSetup(Player player) {
-        Inventory menu = createMenu("setup", 45, "Rival • Karte einrichten", ChatColor.GOLD);
+        Inventory menu = createMenu("setup", 45, "Rival • Welt einrichten", ChatColor.GOLD);
         menu.setItem(10, setupItem(SetupToolManager.Mode.WAITING, "Punkt für den geschützten Warteraum."));
         menu.setItem(12, setupItem(SetupToolManager.Mode.NETHER_1, "Erste X/Z-Ecke; Höhe wird ignoriert."));
         menu.setItem(13, setupItem(SetupToolManager.Mode.NETHER_2, "Zweite X/Z-Ecke; Höhe wird ignoriert."));
@@ -178,8 +175,6 @@ public final class MenuListener implements Listener {
         menu.setItem(26, setupItem(SetupToolManager.Mode.FINAL_CENTER, "Mitte und Höhe des Endkampfs."));
         menu.setItem(31, helpItem(Material.BARRIER, "Zurück zum Dashboard", "Klick: Admin-Hauptmenü"));
         menu.setItem(40, helpItem(Material.STICK, "Bedienung", "Eintrag wählen → Stick erhalten", "Rechtsklick setzt • Linksklick wechselt"));
-        menu.setItem(42, helpItem(Material.FILLED_MAP, plugin.worldMap().hasSnapshot() ? "✔ Weltkarte aktualisieren" : "○ Weltkarte erstellen",
-            "Lädt die vollständige generierte Projektwelt.", "Erst der nächste Admin-Klick aktualisiert sie wieder."));
         menu.setItem(44, creditItem());
         player.openInventory(menu);
     }
@@ -228,11 +223,11 @@ public final class MenuListener implements Listener {
             "Rival • Spieler • " + record.lastName(), ChatColor.GOLD);
         menu.setItem(4, playerStatusItem(record));
         menu.setItem(11, helpItem(Material.BLUE_BED, "Seite NEGATIV",
-            "Klick: Spieler der negativen Kartenseite zuweisen"));
+            "Klick: Spieler der negativen Projektseite zuweisen"));
         menu.setItem(12, helpItem(Material.WHITE_BED, "Keine Seite",
             "Klick: Zuweisung entfernen und in den Warteraum setzen"));
         menu.setItem(13, helpItem(Material.RED_BED, "Seite POSITIV",
-            "Klick: Spieler der positiven Kartenseite zuweisen"));
+            "Klick: Spieler der positiven Projektseite zuweisen"));
         menu.setItem(15, helpItem(Material.REDSTONE, "Herzen verwalten • " + record.hearts() + "/3",
             "Klick: eigenes Herz-Menü öffnen", "Direkt 0, 1, 2 oder 3 Herzen setzen"));
         menu.setItem(21, helpItem(record.eliminated() ? Material.TOTEM_OF_UNDYING : Material.SKELETON_SKULL,
@@ -311,7 +306,6 @@ public final class MenuListener implements Listener {
                 player.closeInventory();
                 plugin.setupTools().give(player, mode);
             } else if (event.getRawSlot() == 31) openAdmin(player);
-            else if (event.getRawSlot() == 42) { player.closeInventory(); plugin.worldMap().update(player); }
             return;
         }
         if (holder.id.equals("game")) {
