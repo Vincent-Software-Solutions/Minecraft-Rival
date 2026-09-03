@@ -3,6 +3,7 @@ package de.minecraft.rival.util;
 import de.minecraft.rival.RivalPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.io.File;
 import java.time.ZoneId;
 import java.util.Locale;
 
@@ -54,8 +55,13 @@ public final class ConfigSanitizer {
         changed |= clamp(config, "moderation.warns-before-ban", 1, 100);
         changed |= clamp(config, "moderation.auto-ban-days", 1, 3650);
         changed |= clamp(config, "youtube.confirmation-seconds", 5, 300);
-        changed |= clamp(config, "world-map.resolution", 128, 1024);
-        changed |= clamp(config, "world-map.radius-blocks", 128, 4096);
+        if (config.contains("world-map")) {
+            config.set("world-map", null);
+            changed = true;
+        }
+        File oldMap = new File(plugin.getDataFolder(), "world-map.bin");
+        if (oldMap.isFile() && !oldMap.delete())
+            plugin.getLogger().warning("Die nicht mehr verwendete world-map.bin konnte nicht gelöscht werden.");
         if (changed) plugin.saveConfig();
     }
 

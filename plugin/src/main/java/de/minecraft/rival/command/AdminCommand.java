@@ -79,7 +79,6 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "warnings" -> warnings(sender, args);
             case "players" -> players(sender, args);
             case "playtime" -> playtime(sender, args);
-            case "worldmap" -> worldMap(sender, args);
             case "blacklist" -> blacklist(sender, args);
             case "setup" -> {
                 if (!(sender instanceof Player player)) Messages.error(sender, "Nur im Spiel verfügbar.");
@@ -88,13 +87,6 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             default -> help(sender);
         }
         return true;
-    }
-
-    private void worldMap(CommandSender sender, String[] args) {
-        if (args.length < 2 || !args[1].equalsIgnoreCase("update")) {
-            Messages.error(sender, "/admin worldmap update"); return;
-        }
-        plugin.worldMap().update(sender);
     }
 
     private void blacklist(CommandSender sender, String[] args) {
@@ -502,7 +494,6 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         Messages.normal(sender, "Spieler • player <hearts|revive|eliminate|timereset|side> <Spieler> [Wert]");
         Messages.normal(sender, "Übersicht • players [Seite] zeigt Status, Herzen, YouTube, Clan, Combat und Spielzeit aller Spieler");
         Messages.normal(sender, "Playtime • playtime ranking zeigt die heute gespielte Zeit aller Spieler sortiert");
-        Messages.normal(sender, "Weltkarte • worldmap update erzeugt und verteilt einen neuen eingefrorenen Kartenstand");
         Messages.normal(sender, "Blacklist • blacklist <add|remove|list|clear> [Material] sperrt Items vollständig");
         Messages.normal(sender, "Gräber • graves <count|deleteall|near|player> [Wert]");
         Messages.normal(sender, "Clans • clan <create|add|remove|owner|color|tag|info|disband> ...");
@@ -541,7 +532,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         if (sender instanceof Player && !sender.hasPermission("rival.admin")) return List.of();
         if (sender instanceof Player player && !plugin.adminMode().isActive(player))
             return args.length == 1 ? filter(List.of("mode"), args[0]) : List.of();
-        if (args.length == 1) return filter(List.of("mode", "help", "vanish", "reload", "broadcast", "rules", "ban", "unban", "warn", "warnings", "players", "playtime", "worldmap", "blacklist", "border", "endfight", "erzfeind", "project", "setlocation", "spawn", "zone", "mobrate", "graves", "config", "player", "clan"), args[0]);
+        if (args.length == 1) return filter(List.of("mode", "help", "vanish", "reload", "broadcast", "rules", "ban", "unban", "warn", "warnings", "players", "playtime", "blacklist", "border", "endfight", "erzfeind", "project", "setlocation", "spawn", "zone", "mobrate", "graves", "config", "player", "clan"), args[0]);
         if (args.length == 2) return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "border" -> filter(List.of("on", "off", "toggle"), args[1]);
             case "endfight" -> filter(List.of("status", "start", "stop"), args[1]);
@@ -556,7 +547,6 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "clan" -> filter(List.of("create", "add", "remove", "owner", "color", "tag", "info", "disband"), args[1]);
             case "rules" -> filter(List.of("add", "remove", "list"), args[1]);
             case "playtime" -> filter(List.of("ranking"), args[1]);
-            case "worldmap" -> filter(List.of("update"), args[1]);
             case "blacklist" -> filter(List.of("add", "remove", "list", "clear"), args[1]);
             case "ban", "unban", "warn", "warnings" -> filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
             default -> List.of();

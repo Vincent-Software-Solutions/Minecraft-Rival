@@ -46,7 +46,7 @@ public final class RivalScreenStyle {
     }
 
     public static void renderCornerBranding(Screen screen, GuiGraphics graphics) {
-        if (screen == null || screen instanceof RivalTitleScreen || screen instanceof RivalMapScreen
+        if (screen == null || screen instanceof RivalTitleScreen
             || screen instanceof ChatScreen || applies(screen)) return;
         if (isModernVanillaMenu(screen)) {
             String section = screen instanceof JoinMultiplayerScreen ? "RIVAL SERVERBROWSER"

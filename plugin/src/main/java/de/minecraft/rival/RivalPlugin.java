@@ -40,7 +40,6 @@ public final class RivalPlugin extends JavaPlugin {
     private MenuListener menus;
     private SetupToolManager setupTools;
     private ItemBlacklistManager blacklist;
-    private WorldMapManager worldMap;
     private World mainWorld;
 
     @Override
@@ -76,7 +75,6 @@ public final class RivalPlugin extends JavaPlugin {
         menus = new MenuListener(this);
         setupTools = new SetupToolManager(this);
         blacklist = new ItemBlacklistManager(this);
-        worldMap = new WorldMapManager(this);
         youtube = new YouTubeManager(this);
 
         register(moderation, adminMode, vanish, graves, projects, zones, borders, playtime, combat, endFight, modGate, youtube, menus, setupTools, blacklist, new PresentationListener(this));
@@ -95,7 +93,6 @@ public final class RivalPlugin extends JavaPlugin {
         getCommand("admin").setTabCompleter(adminCommand);
 
         modGate.enable();
-        worldMap.enable();
         blacklist.enable();
         graves.load();
         zones.enable();
@@ -169,7 +166,6 @@ public final class RivalPlugin extends JavaPlugin {
     public MenuListener menus() { return menus; }
     public SetupToolManager setupTools() { return setupTools; }
     public ItemBlacklistManager blacklist() { return blacklist; }
-    public WorldMapManager worldMap() { return worldMap; }
     public World mainWorld() { return mainWorld; }
     public boolean isMainWorld(World world) { return world != null && world.equals(mainWorld); }
 }
